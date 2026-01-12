@@ -45,6 +45,7 @@ const App: React.FC = () => {
   const [hasMovedManually, setHasMovedManually] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const controlRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!workspaceRef.current) return;
@@ -61,11 +62,11 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!layoutRef.current || !controlRef.current) return;
-    const layoutWidth = layoutRef.current.offsetWidth;
+    if (!mainRef.current || !controlRef.current) return;
+    const mainWidth = mainRef.current.offsetWidth;
     if (!hasMovedManually) {
       const controlWidth = controlRef.current.offsetWidth;
-      const x = Math.min(layoutWidth - controlWidth - 24, layoutWidth - 280);
+      const x = Math.max(0, Math.min(mainWidth - controlWidth - 24, mainWidth - 280));
       setControlPos({ x, y: 24 });
     }
   }, [workspaceSize, hasMovedManually]);
@@ -73,7 +74,7 @@ const App: React.FC = () => {
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('.header-slider') || target.closest('.toggle-btn') || target.closest('input') || target.closest('.palette-btn') || target.closest('.action-btn')) return;
-    if (!controlRef.current || !layoutRef.current) return;
+    if (!controlRef.current || !mainRef.current) return;
     setIsDragging(true);
     setHasMovedManually(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
@@ -128,13 +129,13 @@ const App: React.FC = () => {
       const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
       const clientY = 'touches' in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
 
-      if (isDragging && layoutRef.current && controlRef.current) {
-        const layoutRect = layoutRef.current.getBoundingClientRect();
+      if (isDragging && mainRef.current && controlRef.current) {
+        const mainRect = mainRef.current.getBoundingClientRect();
         const ctrlRect = controlRef.current.getBoundingClientRect();
-        let newX = clientX - layoutRect.left - dragOffset.current.x;
-        let newY = clientY - layoutRect.top - dragOffset.current.y;
-        newX = Math.max(0, Math.min(newX, layoutRect.width - ctrlRect.width));
-        newY = Math.max(0, Math.min(newY, layoutRect.height - 40));
+        let newX = clientX - mainRect.left - dragOffset.current.x;
+        let newY = clientY - mainRect.top - dragOffset.current.y;
+        newX = Math.max(0, Math.min(newX, mainRect.width - ctrlRect.width));
+        newY = Math.max(0, Math.min(newY, mainRect.height - ctrlRect.height));
         setControlPos({ x: newX, y: newY });
       }
 
@@ -265,7 +266,7 @@ const App: React.FC = () => {
             </div>
         </aside>
 
-        <main className="flex-1 relative flex flex-col min-w-0">
+        <main ref={mainRef} className="flex-1 relative flex flex-col min-w-0">
             {selectedNet && (
                 <div ref={controlRef} style={{ left: `${controlPos.x}px`, top: `${controlPos.y}px` }}
                     className={`tool-panel absolute z-[60] w-[280px] rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 transition-all duration-300`}>

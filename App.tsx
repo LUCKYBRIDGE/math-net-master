@@ -287,7 +287,7 @@ const App: React.FC = () => {
                 <div
                     ref={controlRef}
                     style={{ left: 0, top: 0, transform: `translate3d(${controlPos.x}px, ${controlPos.y}px, 0)` }}
-                    className={`tool-panel absolute z-[60] w-[280px] rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 transition-all duration-300`}>
+                    className={`tool-panel absolute z-[60] w-[280px] rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 ${isDragging ? '' : 'transition-all duration-300'}`}>
                     <div onMouseDown={handleDragStart} onTouchStart={handleDragStart} className="px-3 py-3 border-b flex items-center justify-between cursor-grab active:cursor-grabbing bg-slate-50/80">
                         <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">수업 도구</span>
                         <button onClick={() => setIsPanelCollapsed(!isPanelCollapsed)} className="p-1.5 rounded-lg hover:bg-slate-200">

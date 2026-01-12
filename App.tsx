@@ -45,8 +45,6 @@ const App: React.FC = () => {
   const [hasMovedManually, setHasMovedManually] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const controlPosRef = useRef({ x: 0, y: 0 });
-  const pendingPosRef = useRef<{ x: number; y: number } | null>(null);
-  const dragRaf = useRef<number | null>(null);
   const controlRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
 
@@ -86,15 +84,6 @@ const App: React.FC = () => {
     if (controlRef.current) {
       controlRef.current.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
     }
-  };
-
-  const scheduleDragPosition = (pos: { x: number; y: number }) => {
-    pendingPosRef.current = pos;
-    if (dragRaf.current !== null) return;
-    dragRaf.current = window.requestAnimationFrame(() => {
-      dragRaf.current = null;
-      if (pendingPosRef.current) applyDragPosition(pendingPosRef.current);
-    });
   };
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -162,7 +151,7 @@ const App: React.FC = () => {
         let newY = clientY - mainRect.top - dragOffset.current.y;
         newX = Math.max(0, Math.min(newX, mainRect.width - ctrlRect.width));
         newY = Math.max(0, Math.min(newY, mainRect.height - ctrlRect.height));
-        scheduleDragPosition({ x: newX, y: newY });
+        applyDragPosition({ x: newX, y: newY });
       }
 
       if (isCanvasInteracting) {
@@ -180,14 +169,6 @@ const App: React.FC = () => {
     };
 
     const handleGlobalEnd = () => {
-      if (dragRaf.current !== null) {
-        window.cancelAnimationFrame(dragRaf.current);
-        dragRaf.current = null;
-      }
-      if (pendingPosRef.current) {
-        applyDragPosition(pendingPosRef.current);
-        pendingPosRef.current = null;
-      }
       if (isDragging) setControlPos(controlPosRef.current);
       setIsDragging(false);
       setIsCanvasInteracting(false);

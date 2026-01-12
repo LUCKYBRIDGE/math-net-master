@@ -44,6 +44,9 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [hasMovedManually, setHasMovedManually] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const controlPosRef = useRef({ x: 0, y: 0 });
+  const pendingPosRef = useRef<{ x: number; y: number } | null>(null);
+  const dragRaf = useRef<number | null>(null);
   const controlRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
 
@@ -70,6 +73,29 @@ const App: React.FC = () => {
       setControlPos({ x, y: 24 });
     }
   }, [workspaceSize, hasMovedManually]);
+
+  useEffect(() => {
+    controlPosRef.current = controlPos;
+    if (controlRef.current) {
+      controlRef.current.style.transform = `translate3d(${controlPos.x}px, ${controlPos.y}px, 0)`;
+    }
+  }, [controlPos]);
+
+  const applyDragPosition = (pos: { x: number; y: number }) => {
+    controlPosRef.current = pos;
+    if (controlRef.current) {
+      controlRef.current.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+    }
+  };
+
+  const scheduleDragPosition = (pos: { x: number; y: number }) => {
+    pendingPosRef.current = pos;
+    if (dragRaf.current !== null) return;
+    dragRaf.current = window.requestAnimationFrame(() => {
+      dragRaf.current = null;
+      if (pendingPosRef.current) applyDragPosition(pendingPosRef.current);
+    });
+  };
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
@@ -136,7 +162,7 @@ const App: React.FC = () => {
         let newY = clientY - mainRect.top - dragOffset.current.y;
         newX = Math.max(0, Math.min(newX, mainRect.width - ctrlRect.width));
         newY = Math.max(0, Math.min(newY, mainRect.height - ctrlRect.height));
-        setControlPos({ x: newX, y: newY });
+        scheduleDragPosition({ x: newX, y: newY });
       }
 
       if (isCanvasInteracting) {
@@ -154,6 +180,15 @@ const App: React.FC = () => {
     };
 
     const handleGlobalEnd = () => {
+      if (dragRaf.current !== null) {
+        window.cancelAnimationFrame(dragRaf.current);
+        dragRaf.current = null;
+      }
+      if (pendingPosRef.current) {
+        applyDragPosition(pendingPosRef.current);
+        pendingPosRef.current = null;
+      }
+      if (isDragging) setControlPos(controlPosRef.current);
       setIsDragging(false);
       setIsCanvasInteracting(false);
     };
@@ -268,7 +303,9 @@ const App: React.FC = () => {
 
         <main ref={mainRef} className="flex-1 relative flex flex-col min-w-0">
             {selectedNet && (
-                <div ref={controlRef} style={{ left: `${controlPos.x}px`, top: `${controlPos.y}px` }}
+                <div
+                    ref={controlRef}
+                    style={{ left: 0, top: 0, transform: `translate3d(${controlPos.x}px, ${controlPos.y}px, 0)` }}
                     className={`tool-panel absolute z-[60] w-[280px] rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 transition-all duration-300`}>
                     <div onMouseDown={handleDragStart} onTouchStart={handleDragStart} className="px-3 py-3 border-b flex items-center justify-between cursor-grab active:cursor-grabbing bg-slate-50/80">
                         <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">수업 도구</span>

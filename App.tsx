@@ -234,6 +234,18 @@ const App: React.FC = () => {
       : generateAllNets(cuboidDims, false)
   , [mode, cubeSize, cuboidDims]);
 
+  useEffect(() => {
+    if (!selectedNet || currentNets.length === 0) return;
+    const match = currentNets.find(net =>
+      net.patternId === selectedNet.patternId && net.variantIndex === selectedNet.variantIndex
+    );
+    if (match && match.id !== selectedNet.id) {
+      setSelectedNet(match);
+    } else if (!match) {
+      setSelectedNet(currentNets[0]);
+    }
+  }, [currentNets, selectedNet]);
+
   const handleFaceClick = (faceId: number) => {
     if (isDraggingNet.current) return;
     if (selectedPaintColor) {

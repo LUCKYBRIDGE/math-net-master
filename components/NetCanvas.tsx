@@ -309,14 +309,13 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     ? { x: rootFace.x + rootFace.width / 2, y: rootFace.y + rootFace.height / 2 }
     : { x: 0, y: 0 };
   const snappedOrigin = {
-    x: Math.round(-netCenter.x * scale),
-    y: Math.round(-netCenter.y * scale)
+    x: Math.round(-netCenter.x) * scale,
+    y: Math.round(-netCenter.y) * scale
   };
   const baseOffset = {
     x: snappedOrigin.x + rootCenter.x * scale,
     y: snappedOrigin.y + rootCenter.y * scale
   };
-  const gridOffset = snappedOrigin;
   const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
 
   return (
@@ -333,7 +332,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
               linear-gradient(to bottom, #cbd5e1 1px, transparent 1px)
             `,
             backgroundSize: `${scale}px ${scale}px, ${scale}px ${scale}px, ${scale * 5}px ${scale * 5}px, ${scale * 5}px ${scale * 5}px`,
-            backgroundPosition: `calc(50% + ${gridOffset.x}px) calc(50% + ${gridOffset.y}px)`
+            backgroundPosition: 'center center'
           }}
         />
       )}

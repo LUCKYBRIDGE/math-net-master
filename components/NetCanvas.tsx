@@ -344,9 +344,10 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     });
   }, [showGrid, isAxisAligned, rootFace, scale, panOffset.x, panOffset.y, baseOffset.x, baseOffset.y]);
 
+  const gridLineOffset = 0.5;
   const gridBackgroundPosition = measuredGridOffset
-    ? `${measuredGridOffset.x}px ${measuredGridOffset.y}px`
-    : `calc(50% + ${gridOffset.x}px) calc(50% + ${gridOffset.y}px)`;
+    ? `${measuredGridOffset.x - gridLineOffset}px ${measuredGridOffset.y - gridLineOffset}px`
+    : `calc(50% + ${gridOffset.x - gridLineOffset}px) calc(50% + ${gridOffset.y - gridLineOffset}px)`;
 
   return (
     <div ref={containerRef} className="w-full h-full relative flex items-center justify-center overflow-hidden bg-white" style={{ perspective: '6000px' }}>

@@ -42,11 +42,13 @@ const App: React.FC = () => {
   const [workspaceSize, setWorkspaceSize] = useState({ width: 0, height: 0 });
   const [controlPos, setControlPos] = useState({ x: 0, y: 0 }); 
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [hasMovedManually, setHasMovedManually] = useState(false);
+  const [panelSize, setPanelSize] = useState({ width: 280, height: 0 });
   const dragOffset = useRef({ x: 0, y: 0 });
+  const resizeStart = useRef({ x: 0, y: 0, width: 280, height: 0 });
   const controlPosRef = useRef({ x: 0, y: 0 });
   const controlRef = useRef<HTMLDivElement>(null);
-  const mainRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const workspace = workspaceRef.current;
@@ -62,14 +64,17 @@ const App: React.FC = () => {
   }, [selectedNet]);
 
   useEffect(() => {
-    if (!mainRef.current || !controlRef.current) return;
-    const mainWidth = mainRef.current.offsetWidth;
+    if (!layoutRef.current || !controlRef.current) return;
     if (!hasMovedManually) {
-      const controlWidth = controlRef.current.offsetWidth;
-      const x = Math.max(0, Math.min(mainWidth - controlWidth - 24, mainWidth - 280));
+      const layoutWidth = layoutRef.current.offsetWidth;
+      const controlWidth = panelSize.width;
+      const maxX = Math.max(0, layoutWidth - controlWidth - 24);
+      const sidebarWidth = isSidebarOpen ? 320 : 0;
+      const sidebarMaxX = sidebarWidth > 0 ? Math.max(0, sidebarWidth - controlWidth - 24) : maxX;
+      const x = Math.max(0, Math.min(24, Math.min(maxX, sidebarMaxX)));
       setControlPos({ x, y: 24 });
     }
-  }, [workspaceSize, hasMovedManually]);
+  }, [workspaceSize, hasMovedManually, isSidebarOpen, panelSize.width]);
 
   useEffect(() => {
     controlPosRef.current = controlPos;
@@ -87,14 +92,26 @@ const App: React.FC = () => {
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('.header-slider') || target.closest('.toggle-btn') || target.closest('input') || target.closest('.palette-btn') || target.closest('.action-btn')) return;
-    if (!controlRef.current || !mainRef.current) return;
+    if (target.closest('.header-slider') || target.closest('.toggle-btn') || target.closest('input') || target.closest('.palette-btn') || target.closest('.action-btn') || target.closest('.panel-resize-handle')) return;
+    if (!controlRef.current || !layoutRef.current || isResizing) return;
     setIsDragging(true);
     setHasMovedManually(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     const rect = controlRef.current.getBoundingClientRect();
     dragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
+  };
+
+  const handleResizeStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!controlRef.current || !layoutRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    setHasMovedManually(true);
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    const rect = controlRef.current.getBoundingClientRect();
+    resizeStart.current = { x: clientX, y: clientY, width: rect.width, height: rect.height };
   };
 
   /**
@@ -142,13 +159,25 @@ const App: React.FC = () => {
       const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
       const clientY = 'touches' in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
 
-      if (isDragging && mainRef.current && controlRef.current) {
-        const mainRect = mainRef.current.getBoundingClientRect();
+      if (isResizing && layoutRef.current) {
+        const layoutRect = layoutRef.current.getBoundingClientRect();
+        const minWidth = 220;
+        const minHeight = 220;
+        const maxWidth = Math.max(minWidth, layoutRect.width - controlPosRef.current.x - 16);
+        const maxHeight = Math.max(minHeight, layoutRect.height - controlPosRef.current.y - 16);
+        const nextWidth = Math.max(minWidth, Math.min(maxWidth, resizeStart.current.width + (clientX - resizeStart.current.x)));
+        const nextHeight = Math.max(minHeight, Math.min(maxHeight, resizeStart.current.height + (clientY - resizeStart.current.y)));
+        setPanelSize({ width: nextWidth, height: nextHeight });
+        return;
+      }
+
+      if (isDragging && layoutRef.current && controlRef.current) {
+        const layoutRect = layoutRef.current.getBoundingClientRect();
         const ctrlRect = controlRef.current.getBoundingClientRect();
-        let newX = clientX - mainRect.left - dragOffset.current.x;
-        let newY = clientY - mainRect.top - dragOffset.current.y;
-        newX = Math.max(0, Math.min(newX, mainRect.width - ctrlRect.width));
-        newY = Math.max(0, Math.min(newY, mainRect.height - ctrlRect.height));
+        let newX = clientX - layoutRect.left - dragOffset.current.x;
+        let newY = clientY - layoutRect.top - dragOffset.current.y;
+        newX = Math.max(0, Math.min(newX, layoutRect.width - ctrlRect.width));
+        newY = Math.max(0, Math.min(newY, layoutRect.height - ctrlRect.height));
         applyDragPosition({ x: newX, y: newY });
       }
 
@@ -169,6 +198,7 @@ const App: React.FC = () => {
     const handleGlobalEnd = () => {
       if (isDragging) setControlPos(controlPosRef.current);
       setIsDragging(false);
+      setIsResizing(false);
       setIsCanvasInteracting(false);
     };
 
@@ -182,7 +212,7 @@ const App: React.FC = () => {
       window.removeEventListener('touchmove', handleGlobalMove);
       window.removeEventListener('touchend', handleGlobalEnd);
     };
-  }, [isDragging, isCanvasInteracting, interactionMode]);
+  }, [isDragging, isResizing, isCanvasInteracting, interactionMode]);
 
   useEffect(() => {
     setFoldProgress(0);
@@ -252,6 +282,41 @@ const App: React.FC = () => {
     );
   };
 
+  const foldSliderOnly = (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase text-slate-500">접기 제어</span>
+        <span className="text-[9px] font-black text-slate-400">{foldProgress}%</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={foldProgress}
+        onChange={e => setFoldProgress(Number(e.target.value))}
+        className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none accent-blue-600"
+      />
+    </div>
+  );
+
+  const foldControls = (
+    <div className="space-y-3">
+      <span className="text-[10px] font-bold block uppercase text-slate-500">접기 제어</span>
+      <div className="flex gap-2">
+        <button onClick={() => stepFold(-25)} className="flex-1 py-2 rounded-xl bg-slate-100 font-black text-xs">-25%</button>
+        <button onClick={() => stepFold(25)} className="flex-1 py-2 rounded-xl bg-blue-600 text-white font-black text-xs">+25%</button>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={foldProgress}
+        onChange={e => setFoldProgress(Number(e.target.value))}
+        className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none accent-blue-600"
+      />
+    </div>
+  );
+
   return (
     <div className={`flex flex-col h-screen overflow-hidden font-sans select-none transition-all duration-700 ${isClassroomMode ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
       <header className={`flex-none border-b px-4 py-3 shadow-sm z-40 flex items-center justify-between transition-all duration-500 ${isClassroomMode ? 'bg-black/40 backdrop-blur-md border-white/5' : 'bg-white border-slate-200'}`}>
@@ -270,6 +335,128 @@ const App: React.FC = () => {
       </header>
 
       <div ref={layoutRef} className="flex-1 overflow-hidden flex flex-row relative">
+        {selectedNet && (
+          <div
+            ref={controlRef}
+            style={{
+              left: 0,
+              top: 0,
+              width: panelSize.width,
+              height: panelSize.height ? panelSize.height : undefined,
+              minWidth: 220,
+              minHeight: 220,
+              transform: `translate3d(${controlPos.x}px, ${controlPos.y}px, 0)`
+            }}
+            className={`tool-panel absolute z-[60] flex flex-col rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 ${isDragging || isResizing ? '' : 'transition-all duration-300'}`}>
+            <div onMouseDown={handleDragStart} onTouchStart={handleDragStart} className="px-3 py-3 border-b flex items-center justify-between cursor-grab active:cursor-grabbing bg-slate-50/80">
+                <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">수업 도구</span>
+                <button onClick={() => setIsPanelCollapsed(!isPanelCollapsed)} className="p-1.5 rounded-lg hover:bg-slate-200">
+                    <svg className={`w-4 h-4 transition-transform ${isPanelCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+            </div>
+            {isPanelCollapsed ? (
+              <div className="p-3">{foldSliderOnly}</div>
+            ) : (
+              <div className="p-4 space-y-6 overflow-y-auto no-scrollbar flex-1">
+                  {/* 확대 및 모드 */}
+                  <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">배율</span>
+                          <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+                              <button onClick={() => adjustZoom(-0.1)} className="w-8 h-8 font-bold">-</button>
+                              <div className="flex-1 text-center text-[10px] font-black">{Math.round(zoomLevel * 100)}%</div>
+                              <button onClick={() => adjustZoom(0.1)} className="w-8 h-8 font-bold">+</button>
+                          </div>
+                      </div>
+                      <div className="space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">드래그</span>
+                          <div className="flex p-1 bg-slate-100 rounded-xl">
+                              <button onClick={() => setActiveTool('smart')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'smart' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>회전</button>
+                              <button onClick={() => setActiveTool('move')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'move' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>이동</button>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* 단계별 접기 */}
+                  {foldControls}
+
+                  {/* 면 투명도 조절 */}
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                      <span className="text-[10px] font-bold block uppercase text-slate-500">면 투명도</span>
+                      <input 
+                          type="range" 
+                          min="0" 
+                          max="0.9" 
+                          step="0.05"
+                          value={transparency} 
+                          onChange={e => setTransparency(Number(e.target.value))} 
+                          className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none accent-blue-600" 
+                      />
+                      <div className="flex justify-between text-[8px] font-bold text-slate-400">
+                          <span>불투명</span>
+                          <span>투명</span>
+                      </div>
+                  </div>
+
+                  {/* 주사위 설정 */}
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                      <span className="text-[10px] font-bold block uppercase text-slate-500">주사위 눈 (합=7)</span>
+                      <div className="flex p-1 bg-slate-100 rounded-xl">
+                          <button onClick={() => setDiceStyle('none')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}>없음</button>
+                          <button onClick={() => setDiceStyle('number')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'number' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>숫자</button>
+                          <button onClick={() => setDiceStyle('dot')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'dot' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>눈</button>
+                      </div>
+                  </div>
+
+                  {/* 평행한 면 강조 */}
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                      <span className="text-[10px] font-bold block uppercase text-slate-500">평행한 면 (같은 색칠)</span>
+                      <div className="flex gap-2">
+                          {[0, 1, 2].map(id => (
+                              <button key={id} onClick={() => togglePair(id)} className={`flex-1 py-2 rounded-xl font-black text-[10px] border-2 transition-all ${activePairs.has(id) ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>쌍 {id + 1}</button>
+                          ))}
+                      </div>
+                  </div>
+
+                  {/* 맞물리는 모서리 강조 */}
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                      <span className="text-[10px] font-bold block uppercase text-slate-500">모서리 분석</span>
+                      <button onClick={() => setShowEdgeMatches(!showEdgeMatches)} className={`w-full py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showEdgeMatches ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-100'}`}>
+                          {showEdgeMatches ? '모서리 매칭 OFF' : '맞물리는 모서리 표시'}
+                      </button>
+                  </div>
+
+                  {/* 색칠 도구 */}
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                      <span className="text-[10px] font-bold block uppercase text-slate-500">색칠하기</span>
+                      <div className="flex flex-wrap gap-2">
+                          {PAINT_PALETTE.map(color => (
+                              <button key={color} onClick={() => setSelectedPaintColor(selectedPaintColor === color ? null : color)} className={`w-8 h-8 rounded-full border-2 ${selectedPaintColor === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`} style={{ backgroundColor: color }} />
+                          ))}
+                      </div>
+                  </div>
+
+                  {/* 관찰 시점 */}
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                      <span className="text-[10px] font-bold block uppercase text-slate-500">관찰 시점</span>
+                      <div className="grid grid-cols-2 gap-2">
+                          <button onClick={() => setQuickView('front')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">앞면</button>
+                          <button onClick={() => setQuickView('top')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">윗면</button>
+                          <button onClick={() => setQuickView('side')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">옆면</button>
+                          <button onClick={() => setQuickView('iso')} className="py-2 text-[10px] font-black rounded-xl border bg-blue-50 text-blue-600">입체</button>
+                      </div>
+                  </div>
+              </div>
+            )}
+            <div
+              onMouseDown={handleResizeStart}
+              onTouchStart={handleResizeStart}
+              className="panel-resize-handle absolute bottom-2 right-2 h-4 w-4 cursor-se-resize"
+            >
+              <div className="absolute bottom-0 right-0 h-3 w-3 border-b-2 border-r-2 border-slate-300" />
+            </div>
+          </div>
+        )}
         <aside className={`absolute lg:relative z-20 h-full transition-all duration-300 border-r bg-white border-slate-200 ${isSidebarOpen ? 'w-[320px] translate-x-0' : '-translate-x-full lg:w-0'}`}>
             <div className="flex flex-col h-full p-4 overflow-y-auto no-scrollbar space-y-6">
                 <div className="flex justify-between items-center">
@@ -280,120 +467,7 @@ const App: React.FC = () => {
             </div>
         </aside>
 
-        <main ref={mainRef} className="flex-1 relative flex flex-col min-w-0">
-            {selectedNet && (
-                <div
-                    ref={controlRef}
-                    style={{ left: 0, top: 0, transform: `translate3d(${controlPos.x}px, ${controlPos.y}px, 0)` }}
-                    className={`tool-panel absolute z-[60] w-[280px] rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 ${isDragging ? '' : 'transition-all duration-300'}`}>
-                    <div onMouseDown={handleDragStart} onTouchStart={handleDragStart} className="px-3 py-3 border-b flex items-center justify-between cursor-grab active:cursor-grabbing bg-slate-50/80">
-                        <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">수업 도구</span>
-                        <button onClick={() => setIsPanelCollapsed(!isPanelCollapsed)} className="p-1.5 rounded-lg hover:bg-slate-200">
-                            <svg className={`w-4 h-4 transition-transform ${isPanelCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-                        </button>
-                    </div>
-                    {!isPanelCollapsed && (
-                        <div className="p-4 space-y-6 overflow-y-auto max-h-[75vh] no-scrollbar">
-                            {/* 확대 및 모드 */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase">배율</span>
-                                    <div className="flex items-center p-1 bg-slate-100 rounded-xl">
-                                        <button onClick={() => adjustZoom(-0.1)} className="w-8 h-8 font-bold">-</button>
-                                        <div className="flex-1 text-center text-[10px] font-black">{Math.round(zoomLevel * 100)}%</div>
-                                        <button onClick={() => adjustZoom(0.1)} className="w-8 h-8 font-bold">+</button>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase">드래그</span>
-                                    <div className="flex p-1 bg-slate-100 rounded-xl">
-                                        <button onClick={() => setActiveTool('smart')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'smart' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>회전</button>
-                                        <button onClick={() => setActiveTool('move')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'move' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>이동</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 단계별 접기 */}
-                            <div className="space-y-3">
-                                <span className="text-[10px] font-bold block uppercase text-slate-500">접기 제어</span>
-                                <div className="flex gap-2">
-                                    <button onClick={() => stepFold(-25)} className="flex-1 py-2 rounded-xl bg-slate-100 font-black text-xs">-25%</button>
-                                    <button onClick={() => stepFold(25)} className="flex-1 py-2 rounded-xl bg-blue-600 text-white font-black text-xs">+25%</button>
-                                </div>
-                                <input type="range" min="0" max="100" value={foldProgress} onChange={e => setFoldProgress(Number(e.target.value))} className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none accent-blue-600" />
-                            </div>
-
-                            {/* 면 투명도 조절 */}
-                            <div className="space-y-3 pt-2 border-t border-slate-50">
-                                <span className="text-[10px] font-bold block uppercase text-slate-500">면 투명도</span>
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max="0.9" 
-                                    step="0.05"
-                                    value={transparency} 
-                                    onChange={e => setTransparency(Number(e.target.value))} 
-                                    className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none accent-blue-600" 
-                                />
-                                <div className="flex justify-between text-[8px] font-bold text-slate-400">
-                                    <span>불투명</span>
-                                    <span>투명</span>
-                                </div>
-                            </div>
-
-                            {/* 주사위 설정 */}
-                            <div className="space-y-3 pt-2 border-t border-slate-50">
-                                <span className="text-[10px] font-bold block uppercase text-slate-500">주사위 눈 (합=7)</span>
-                                <div className="flex p-1 bg-slate-100 rounded-xl">
-                                    <button onClick={() => setDiceStyle('none')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}>없음</button>
-                                    <button onClick={() => setDiceStyle('number')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'number' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>숫자</button>
-                                    <button onClick={() => setDiceStyle('dot')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'dot' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>눈</button>
-                                </div>
-                            </div>
-
-                            {/* 평행한 면 강조 */}
-                            <div className="space-y-3 pt-2 border-t border-slate-50">
-                                <span className="text-[10px] font-bold block uppercase text-slate-500">평행한 면 (같은 색칠)</span>
-                                <div className="flex gap-2">
-                                    {[0, 1, 2].map(id => (
-                                        <button key={id} onClick={() => togglePair(id)} className={`flex-1 py-2 rounded-xl font-black text-[10px] border-2 transition-all ${activePairs.has(id) ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>쌍 {id + 1}</button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* 맞물리는 모서리 강조 */}
-                            <div className="space-y-3 pt-2 border-t border-slate-50">
-                                <span className="text-[10px] font-bold block uppercase text-slate-500">모서리 분석</span>
-                                <button onClick={() => setShowEdgeMatches(!showEdgeMatches)} className={`w-full py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showEdgeMatches ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-100'}`}>
-                                    {showEdgeMatches ? '모서리 매칭 OFF' : '맞물리는 모서리 표시'}
-                                </button>
-                            </div>
-
-                            {/* 색칠 도구 */}
-                            <div className="space-y-3 pt-2 border-t border-slate-50">
-                                <span className="text-[10px] font-bold block uppercase text-slate-500">색칠하기</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {PAINT_PALETTE.map(color => (
-                                        <button key={color} onClick={() => setSelectedPaintColor(selectedPaintColor === color ? null : color)} className={`w-8 h-8 rounded-full border-2 ${selectedPaintColor === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`} style={{ backgroundColor: color }} />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* 관찰 시점 */}
-                            <div className="space-y-3 pt-2 border-t border-slate-50">
-                                <span className="text-[10px] font-bold block uppercase text-slate-500">관찰 시점</span>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button onClick={() => setQuickView('front')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">앞면</button>
-                                    <button onClick={() => setQuickView('top')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">윗면</button>
-                                    <button onClick={() => setQuickView('side')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">옆면</button>
-                                    <button onClick={() => setQuickView('iso')} className="py-2 text-[10px] font-black rounded-xl border bg-blue-50 text-blue-600">입체</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
+        <main className="flex-1 relative flex flex-col min-w-0">
             <div className={`flex-1 flex flex-col p-4 sm:p-6 lg:p-10 min-h-0 ${isClassroomMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
                 {selectedNet ? (
                     <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">

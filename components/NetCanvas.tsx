@@ -304,7 +304,15 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   const zShift = scale * (foldProgress / 100) * -1.5; 
   
   const rootFace = net.faces.find(f => f.id === 0);
-  const sceneTransform = `translate(${panOffset.x}px, ${panOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
+  const netCenter = { x: net.totalWidth / 2, y: net.totalHeight / 2 };
+  const rootCenter = rootFace
+    ? { x: rootFace.x + rootFace.width / 2, y: rootFace.y + rootFace.height / 2 }
+    : { x: 0, y: 0 };
+  const baseOffset = {
+    x: (rootCenter.x - netCenter.x) * scale,
+    y: (rootCenter.y - netCenter.y) * scale
+  };
+  const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
 
   return (
     <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-white" style={{ perspective: '6000px' }}>

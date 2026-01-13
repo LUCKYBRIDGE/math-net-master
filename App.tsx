@@ -239,7 +239,7 @@ const App: React.FC = () => {
     const match = currentNets.find(net =>
       net.patternId === selectedNet.patternId && net.variantIndex === selectedNet.variantIndex
     );
-    if (match && match.id !== selectedNet.id) {
+    if (match && match !== selectedNet) {
       setSelectedNet(match);
     } else if (!match) {
       setSelectedNet(currentNets[0]);

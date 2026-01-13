@@ -312,6 +312,10 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     x: (rootCenter.x - netCenter.x) * scale,
     y: (rootCenter.y - netCenter.y) * scale
   };
+  const gridOffset = {
+    x: -netCenter.x * scale,
+    y: -netCenter.y * scale
+  };
   const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
 
   return (
@@ -328,7 +332,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
               linear-gradient(to bottom, #cbd5e1 1px, transparent 1px)
             `,
             backgroundSize: `${scale}px ${scale}px, ${scale}px ${scale}px, ${scale * 5}px ${scale * 5}px, ${scale * 5}px ${scale * 5}px`,
-            backgroundPosition: 'center center'
+            backgroundPosition: `calc(50% + ${gridOffset.x}px) calc(50% + ${gridOffset.y}px)`
           }}
         />
       )}

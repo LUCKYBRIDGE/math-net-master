@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { NetData, Face, Direction } from '../types';
 
 interface NetCanvasProps {
@@ -302,6 +302,9 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   const isFlat = foldProgress === 0;
   const faceOpacity = 1 - transparency;
   const zShift = scale * (foldProgress / 100) * -1.5; 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [measuredGridOffset, setMeasuredGridOffset] = useState<{ x: number; y: number } | null>(null);
   
   const rootFace = net.faces.find(f => f.id === 0);
   const netCenter = { x: net.totalWidth / 2, y: net.totalHeight / 2 };
@@ -320,9 +323,33 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
       }
     : { x: panOffset.x, y: panOffset.y };
   const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
+  const isAxisAligned = isFlat && rotation.x === 0 && rotation.y === 0;
+
+  useLayoutEffect(() => {
+    if (!showGrid || !isAxisAligned || !rootFace || !containerRef.current || !rootRef.current) {
+      setMeasuredGridOffset(null);
+      return;
+    }
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const rootRect = rootRef.current.getBoundingClientRect();
+    const next = {
+      x: rootRect.left - containerRect.left,
+      y: rootRect.top - containerRect.top
+    };
+    setMeasuredGridOffset(prev => {
+      if (!prev) return next;
+      const dx = Math.abs(prev.x - next.x);
+      const dy = Math.abs(prev.y - next.y);
+      return dx < 0.5 && dy < 0.5 ? prev : next;
+    });
+  }, [showGrid, isAxisAligned, rootFace, scale, panOffset.x, panOffset.y, baseOffset.x, baseOffset.y]);
+
+  const gridBackgroundPosition = measuredGridOffset
+    ? `${measuredGridOffset.x}px ${measuredGridOffset.y}px`
+    : `calc(50% + ${gridOffset.x}px) calc(50% + ${gridOffset.y}px)`;
 
   return (
-    <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-white" style={{ perspective: '6000px' }}>
+    <div ref={containerRef} className="w-full h-full relative flex items-center justify-center overflow-hidden bg-white" style={{ perspective: '6000px' }}>
       
       {showGrid && (
         <div 
@@ -335,7 +362,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
               linear-gradient(to bottom, #cbd5e1 1px, transparent 1px)
             `,
             backgroundSize: `${scale}px ${scale}px, ${scale}px ${scale}px, ${scale * 5}px ${scale * 5}px, ${scale * 5}px ${scale * 5}px`,
-            backgroundPosition: `calc(50% + ${gridOffset.x}px) calc(50% + ${gridOffset.y}px)`
+            backgroundPosition: gridBackgroundPosition
           }}
         />
       )}
@@ -348,7 +375,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
                 transition: isAnimatingRotation ? `transform ${animationDuration}s cubic-bezier(0.1, 0.7, 0.1, 1)` : (isRotating ? 'none' : 'transform 0.1s linear'),
             }}>
              {rootFace && (
-               <div style={{ position: 'absolute', left: -rootFace.width * scale / 2, top: -rootFace.height * scale / 2, transformStyle: 'preserve-3d' }}>
+               <div ref={rootRef} style={{ position: 'absolute', left: -rootFace.width * scale / 2, top: -rootFace.height * scale / 2, transformStyle: 'preserve-3d' }}>
                  <FoldableFace 
                   face={rootFace} allFaces={net.faces} scale={scale} 
                   foldAngle={foldProgress * 0.9} faceOpacity={faceOpacity} 

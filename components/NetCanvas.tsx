@@ -320,7 +320,10 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     x: snappedDelta.x * scale,
     y: snappedDelta.y * scale
   };
-  const gridOffset = baseOffset;
+  const gridOffset = {
+    x: baseOffset.x + panOffset.x - rootCenter.x * scale,
+    y: baseOffset.y + panOffset.y - rootCenter.y * scale
+  };
   const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
 
   return (

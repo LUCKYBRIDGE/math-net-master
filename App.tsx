@@ -132,7 +132,8 @@ const App: React.FC = () => {
     const fitScale = Math.min(availW / netW, availH / netH);
     
     // fitScale에 zoomLevel을 반영하여 직관적인 확대/축소 제공
-    return Math.max(5, fitScale * zoomLevel);
+    // Snap scale to whole pixels to keep net edges aligned with grid lines.
+    return Math.max(5, Math.floor(fitScale * zoomLevel));
   }, [workspaceSize, selectedNet, zoomLevel, isClassroomMode]);
 
   const handleCanvasDown = (e: React.MouseEvent | React.TouchEvent) => {

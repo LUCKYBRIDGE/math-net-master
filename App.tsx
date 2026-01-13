@@ -11,7 +11,7 @@ const PAINT_PALETTE = ['#ef4444', '#3b82f6', '#22c55e', '#fde047', '#a855f7', '#
 const App: React.FC = () => {
   const [mode, setMode] = useState<'cube' | 'cuboid'>('cube');
   const [cubeSize] = useState(3);
-  const [cuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
+  const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [selectedNet, setSelectedNet] = useState<NetData | null>(null);
   const [foldProgress, setFoldProgress] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1.0); 
@@ -257,6 +257,12 @@ const App: React.FC = () => {
     setZoomLevel(prev => Math.max(0.1, Math.min(5.0, Math.round((prev + delta) * 10) / 10)));
   };
 
+  const clampDim = (value: number) => Math.max(1, Math.min(10, Math.round(value)));
+
+  const updateCuboidDim = (key: keyof Dimensions, value: number) => {
+    setCuboidDims(prev => ({ ...prev, [key]: clampDim(value) }));
+  };
+
   const stepFold = (delta: number) => {
     setFoldProgress(prev => Math.max(0, Math.min(100, prev + delta)));
   };
@@ -377,6 +383,35 @@ const App: React.FC = () => {
                           </div>
                       </div>
                   </div>
+
+                  {mode === 'cuboid' && (
+                    <div className="space-y-3 pt-2 border-t border-slate-50">
+                      <span className="text-[10px] font-bold block uppercase text-slate-500">직육면체 크기</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { key: 'l', label: '가로' },
+                          { key: 'w', label: '세로' },
+                          { key: 'h', label: '높이' },
+                        ] as const).map(({ key, label }) => (
+                          <div key={key} className="space-y-2">
+                            <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
+                            <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+                              <button onClick={() => updateCuboidDim(key, cuboidDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
+                              <input
+                                type="number"
+                                min={1}
+                                max={10}
+                                value={cuboidDims[key]}
+                                onChange={e => updateCuboidDim(key, Number(e.target.value))}
+                                className="w-10 text-center text-[10px] font-black bg-transparent outline-none"
+                              />
+                              <button onClick={() => updateCuboidDim(key, cuboidDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* 단계별 접기 */}
                   {foldControls}

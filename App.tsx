@@ -343,9 +343,9 @@ const App: React.FC = () => {
               left: 0,
               top: 0,
               width: panelSize.width,
-              height: panelSize.height ? panelSize.height : undefined,
+              height: isPanelCollapsed ? undefined : (panelSize.height ? panelSize.height : undefined),
               minWidth: 220,
-              minHeight: 220,
+              minHeight: isPanelCollapsed ? 0 : 220,
               transform: `translate3d(${controlPos.x}px, ${controlPos.y}px, 0)`
             }}
             className={`tool-panel absolute z-[60] flex flex-col rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 ${isDragging || isResizing ? '' : 'transition-all duration-300'}`}>

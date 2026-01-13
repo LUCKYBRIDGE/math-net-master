@@ -49,18 +49,17 @@ const App: React.FC = () => {
   const mainRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!workspaceRef.current) return;
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
     const updateSize = () => {
-      if (workspaceRef.current) {
-        const { clientWidth, clientHeight } = workspaceRef.current;
-        if (clientWidth > 0 && clientHeight > 0) setWorkspaceSize({ width: clientWidth, height: clientHeight });
-      }
+      const { clientWidth, clientHeight } = workspace;
+      if (clientWidth > 0 && clientHeight > 0) setWorkspaceSize({ width: clientWidth, height: clientHeight });
     };
     const observer = new ResizeObserver(updateSize);
-    observer.observe(workspaceRef.current);
+    observer.observe(workspace);
     updateSize();
     return () => observer.disconnect();
-  }, []);
+  }, [selectedNet]);
 
   useEffect(() => {
     if (!mainRef.current || !controlRef.current) return;

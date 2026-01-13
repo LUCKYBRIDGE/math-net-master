@@ -308,18 +308,11 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   const rootCenter = rootFace
     ? { x: rootFace.x + rootFace.width / 2, y: rootFace.y + rootFace.height / 2 }
     : { x: 0, y: 0 };
-  const centerSnap = {
-    x: rootFace && rootFace.width % 2 !== 0 ? scale / 2 : 0,
-    y: rootFace && rootFace.height % 2 !== 0 ? scale / 2 : 0
-  };
   const baseOffsetRaw = {
     x: (rootCenter.x - netCenter.x) * scale,
     y: (rootCenter.y - netCenter.y) * scale
   };
-  const baseOffset = {
-    x: Math.round((baseOffsetRaw.x - centerSnap.x) / scale) * scale + centerSnap.x,
-    y: Math.round((baseOffsetRaw.y - centerSnap.y) / scale) * scale + centerSnap.y
-  };
+  const baseOffset = baseOffsetRaw;
   const gridOffset = rootFace
     ? {
         x: baseOffset.x + panOffset.x - (rootFace.width * scale) / 2,

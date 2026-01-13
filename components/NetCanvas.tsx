@@ -308,22 +308,24 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   const rootCenter = rootFace
     ? { x: rootFace.x + rootFace.width / 2, y: rootFace.y + rootFace.height / 2 }
     : { x: 0, y: 0 };
-  const centerDelta = {
-    x: rootCenter.x - netCenter.x,
-    y: rootCenter.y - netCenter.y
+  const centerSnap = {
+    x: rootFace && rootFace.width % 2 !== 0 ? scale / 2 : 0,
+    y: rootFace && rootFace.height % 2 !== 0 ? scale / 2 : 0
   };
-  const snappedDelta = {
-    x: Math.round(centerDelta.x),
-    y: Math.round(centerDelta.y)
+  const baseOffsetRaw = {
+    x: (rootCenter.x - netCenter.x) * scale,
+    y: (rootCenter.y - netCenter.y) * scale
   };
   const baseOffset = {
-    x: snappedDelta.x * scale,
-    y: snappedDelta.y * scale
+    x: Math.round((baseOffsetRaw.x - centerSnap.x) / scale) * scale + centerSnap.x,
+    y: Math.round((baseOffsetRaw.y - centerSnap.y) / scale) * scale + centerSnap.y
   };
-  const gridOffset = {
-    x: baseOffset.x + panOffset.x - rootCenter.x * scale,
-    y: baseOffset.y + panOffset.y - rootCenter.y * scale
-  };
+  const gridOffset = rootFace
+    ? {
+        x: baseOffset.x + panOffset.x - (rootFace.width * scale) / 2,
+        y: baseOffset.y + panOffset.y - (rootFace.height * scale) / 2
+      }
+    : { x: panOffset.x, y: panOffset.y };
   const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
 
   return (

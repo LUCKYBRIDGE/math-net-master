@@ -180,7 +180,14 @@ const PerspectiveWireframe: React.FC<{
            edgeStyle.backgroundColor = color;
         }
         
-        return <div key={dir} style={edgeStyle} />;
+        const isRootEdge = isFlat && isInward && face.id === 0;
+        return (
+          <div
+            key={dir}
+            style={edgeStyle}
+            data-root-edge={isRootEdge ? dir : undefined}
+          />
+        );
       })}
 
       {diceStyle && diceStyle !== 'none' && isInward && scale > 10 && (
@@ -332,9 +339,15 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     }
     const containerRect = containerRef.current.getBoundingClientRect();
     const rootRect = rootRef.current.getBoundingClientRect();
+    const leftEdge = containerRef.current.querySelector('[data-root-edge="left"]') as HTMLElement | null;
+    const topEdge = containerRef.current.querySelector('[data-root-edge="up"]') as HTMLElement | null;
     const next = {
-      x: rootRect.left - containerRect.left,
-      y: rootRect.top - containerRect.top
+      x: leftEdge
+        ? leftEdge.getBoundingClientRect().left + leftEdge.getBoundingClientRect().width / 2 - containerRect.left
+        : rootRect.left - containerRect.left,
+      y: topEdge
+        ? topEdge.getBoundingClientRect().top + topEdge.getBoundingClientRect().height / 2 - containerRect.top
+        : rootRect.top - containerRect.top
     };
     setMeasuredGridOffset(prev => {
       if (!prev) return next;

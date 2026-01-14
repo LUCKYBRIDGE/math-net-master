@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { NetData, Face, Direction } from '../types';
+import { getNetAlignment } from '../utils/netAlignment';
 
 interface NetCanvasProps {
   net: NetData;
@@ -304,23 +305,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   const isFlat = foldProgress === 0;
   const faceOpacity = 1 - transparency;
   const zShift = scale * (foldProgress / 100) * -1.5; 
-  const rootFace = net.faces.find(f => f.id === 0);
-  const netCenter = { x: net.totalWidth / 2, y: net.totalHeight / 2 };
-  const rootCenter = rootFace
-    ? { x: rootFace.x + rootFace.width / 2, y: rootFace.y + rootFace.height / 2 }
-    : { x: 0, y: 0 };
-  const centerSnap = {
-    x: rootFace && rootFace.width % 2 !== 0 ? scale / 2 : 0,
-    y: rootFace && rootFace.height % 2 !== 0 ? scale / 2 : 0
-  };
-  const baseOffsetRaw = {
-    x: (rootCenter.x - netCenter.x) * scale,
-    y: (rootCenter.y - netCenter.y) * scale
-  };
-  const baseOffset = {
-    x: Math.round((baseOffsetRaw.x - centerSnap.x) / scale) * scale + centerSnap.x,
-    y: Math.round((baseOffsetRaw.y - centerSnap.y) / scale) * scale + centerSnap.y
-  };
+  const { rootFace, baseOffset } = getNetAlignment(net, scale);
   const gridOffset = rootFace
     ? {
         x: baseOffset.x - (rootFace.width * scale) / 2,

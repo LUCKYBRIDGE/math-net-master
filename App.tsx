@@ -3,12 +3,14 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Dimensions, NetData } from './types';
 import { generateAllNets } from './utils/netGenerator';
 import { NetCanvas } from './components/NetCanvas';
+import { CompareCanvas } from './components/CompareCanvas';
 
 const DEFAULT_ROTATION = { x: 0, y: 0 }; 
 const ISO_ROTATION = { x: -25, y: 45 }; 
 const PAINT_PALETTE = ['#ef4444', '#3b82f6', '#22c55e', '#fde047', '#a855f7', '#ffffff'];
 
 const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'single' | 'compare'>('single');
   const [mode, setMode] = useState<'cube' | 'cuboid'>('cube');
   const [cubeSize] = useState(3);
   const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
@@ -37,10 +39,22 @@ const App: React.FC = () => {
   const isDraggingNet = useRef(false);
   const [animDuration, setAnimDuration] = useState(1.5); 
   const lastScaleRef = useRef<number | null>(null);
+  const compareScaleRef = useRef<number | null>(null);
+  const [compareLeftDims, setCompareLeftDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
+  const [compareRightDims, setCompareRightDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
+  const [compareLeftNet, setCompareLeftNet] = useState<NetData | null>(null);
+  const [compareRightNet, setCompareRightNet] = useState<NetData | null>(null);
+  const [compareZoomLevel, setCompareZoomLevel] = useState(1.0);
+  const [comparePanLeft, setComparePanLeft] = useState({ x: 0, y: 0 });
+  const [comparePanRight, setComparePanRight] = useState({ x: 0, y: 0 });
+  const [compareActiveSide, setCompareActiveSide] = useState<'left' | 'right'>('left');
+  const [showCompareDebug, setShowCompareDebug] = useState(false);
 
   const layoutRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const compareWorkspaceRef = useRef<HTMLDivElement>(null);
   const [workspaceSize, setWorkspaceSize] = useState({ width: 0, height: 0 });
+  const [compareWorkspaceSize, setCompareWorkspaceSize] = useState({ width: 0, height: 0 });
   const [controlPos, setControlPos] = useState({ x: 0, y: 0 }); 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -64,6 +78,19 @@ const App: React.FC = () => {
     updateSize();
     return () => observer.disconnect();
   }, [selectedNet]);
+
+  useEffect(() => {
+    const workspace = compareWorkspaceRef.current;
+    if (!workspace) return;
+    const updateSize = () => {
+      const { clientWidth, clientHeight } = workspace;
+      if (clientWidth > 0 && clientHeight > 0) setCompareWorkspaceSize({ width: clientWidth, height: clientHeight });
+    };
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(workspace);
+    updateSize();
+    return () => observer.disconnect();
+  }, [compareLeftNet, compareRightNet, activeTab]);
 
   useEffect(() => {
     if (!layoutRef.current || !controlRef.current) return;
@@ -128,6 +155,11 @@ const App: React.FC = () => {
     return Math.max(5, Math.round(baseScale * zoomLevel));
   }, [zoomLevel]);
 
+  const compareScale = useMemo(() => {
+    const baseScale = 40;
+    return Math.max(5, Math.round(baseScale * compareZoomLevel));
+  }, [compareZoomLevel]);
+
   useEffect(() => {
     if (lastScaleRef.current === null) {
       lastScaleRef.current = computedScale;
@@ -142,6 +174,25 @@ const App: React.FC = () => {
       lastScaleRef.current = computedScale;
     }
   }, [computedScale]);
+
+  useEffect(() => {
+    if (compareScaleRef.current === null) {
+      compareScaleRef.current = compareScale;
+      return;
+    }
+    if (compareScaleRef.current !== compareScale) {
+      const ratio = compareScale / compareScaleRef.current;
+      setComparePanLeft(prev => ({
+        x: Math.round(prev.x * ratio),
+        y: Math.round(prev.y * ratio)
+      }));
+      setComparePanRight(prev => ({
+        x: Math.round(prev.x * ratio),
+        y: Math.round(prev.y * ratio)
+      }));
+      compareScaleRef.current = compareScale;
+    }
+  }, [compareScale]);
 
   const handleCanvasDown = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
@@ -247,6 +298,15 @@ const App: React.FC = () => {
       : generateAllNets(cuboidDims, false)
   , [mode, cubeSize, cuboidDims]);
 
+  const compareLeftNets = useMemo(
+    () => generateAllNets(compareLeftDims, false),
+    [compareLeftDims]
+  );
+  const compareRightNets = useMemo(
+    () => generateAllNets(compareRightDims, false),
+    [compareRightDims]
+  );
+
   useEffect(() => {
     if (!selectedNet || currentNets.length === 0) return;
     const match = currentNets.find(net =>
@@ -258,6 +318,38 @@ const App: React.FC = () => {
       setSelectedNet(currentNets[0]);
     }
   }, [currentNets, selectedNet]);
+
+  useEffect(() => {
+    if (compareLeftNets.length === 0) return;
+    if (!compareLeftNet) {
+      setCompareLeftNet(compareLeftNets[0]);
+      return;
+    }
+    const match = compareLeftNets.find(net =>
+      net.patternId === compareLeftNet.patternId && net.variantIndex === compareLeftNet.variantIndex
+    );
+    if (match && match !== compareLeftNet) {
+      setCompareLeftNet(match);
+    } else if (!match) {
+      setCompareLeftNet(compareLeftNets[0]);
+    }
+  }, [compareLeftNets, compareLeftNet]);
+
+  useEffect(() => {
+    if (compareRightNets.length === 0) return;
+    if (!compareRightNet) {
+      setCompareRightNet(compareRightNets[0]);
+      return;
+    }
+    const match = compareRightNets.find(net =>
+      net.patternId === compareRightNet.patternId && net.variantIndex === compareRightNet.variantIndex
+    );
+    if (match && match !== compareRightNet) {
+      setCompareRightNet(match);
+    } else if (!match) {
+      setCompareRightNet(compareRightNets[0]);
+    }
+  }, [compareRightNets, compareRightNet]);
 
   const handleFaceClick = (faceId: number) => {
     if (isDraggingNet.current) return;
@@ -281,12 +373,23 @@ const App: React.FC = () => {
   const adjustZoom = (delta: number) => {
     setZoomLevel(prev => Math.max(0.1, Math.min(5.0, Math.round((prev + delta) * 10) / 10)));
   };
+  const adjustCompareZoom = (delta: number) => {
+    setCompareZoomLevel(prev => Math.max(0.1, Math.min(5.0, Math.round((prev + delta) * 10) / 10)));
+  };
   const snapToGrid = (value: number, grid: number) => Math.round(value / grid) * grid;
 
   const clampDim = (value: number) => Math.max(1, Math.min(10, Math.round(value)));
 
   const updateCuboidDim = (key: keyof Dimensions, value: number) => {
     setCuboidDims(prev => ({ ...prev, [key]: clampDim(value) }));
+  };
+
+  const updateCompareDim = (side: 'left' | 'right', key: keyof Dimensions, value: number) => {
+    if (side === 'left') {
+      setCompareLeftDims(prev => ({ ...prev, [key]: clampDim(value) }));
+    } else {
+      setCompareRightDims(prev => ({ ...prev, [key]: clampDim(value) }));
+    }
   };
 
   const stepFold = (delta: number) => {
@@ -360,15 +463,31 @@ const App: React.FC = () => {
         
         <div className="flex items-center gap-4">
             <div className="flex p-1 bg-slate-100 rounded-xl">
-                <button onClick={() => setMode('cube')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'cube' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>정육면체</button>
-                <button onClick={() => setMode('cuboid')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'cuboid' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>직육면체</button>
+                <button
+                  onClick={() => { setActiveTab('single'); setMode('cube'); }}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cube' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                >
+                  정육면체
+                </button>
+                <button
+                  onClick={() => { setActiveTab('single'); setMode('cuboid'); }}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cuboid' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                >
+                  직육면체
+                </button>
+                <button
+                  onClick={() => setActiveTab('compare')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'compare' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                >
+                  비교모드
+                </button>
             </div>
             <button onClick={() => setIsClassroomMode(!isClassroomMode)} className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isClassroomMode ? 'bg-blue-600 text-white' : 'bg-slate-800 text-white'}`}>교실 모드</button>
         </div>
       </header>
 
       <div ref={layoutRef} className="flex-1 overflow-hidden flex flex-row relative">
-        {selectedNet && (
+        {activeTab === 'single' && selectedNet && (
           <div
             ref={controlRef}
             style={{
@@ -519,29 +638,187 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
-        <aside className={`absolute lg:relative z-20 h-full transition-all duration-300 border-r bg-white border-slate-200 ${isSidebarOpen ? 'w-[320px] translate-x-0' : '-translate-x-full lg:w-0'}`}>
-            <div className="flex flex-col h-full p-4 overflow-y-auto no-scrollbar space-y-6">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">전개도 탐색</h2>
-                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-1 text-slate-400"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-                </div>
-                <div className="grid grid-cols-1 gap-4">{currentNets.map((n, i) => renderNetItem(n, i))}</div>
-            </div>
-        </aside>
+        {activeTab === 'single' && (
+          <aside className={`absolute lg:relative z-20 h-full transition-all duration-300 border-r bg-white border-slate-200 ${isSidebarOpen ? 'w-[320px] translate-x-0' : '-translate-x-full lg:w-0'}`}>
+              <div className="flex flex-col h-full p-4 overflow-y-auto no-scrollbar space-y-6">
+                  <div className="flex justify-between items-center">
+                      <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">전개도 탐색</h2>
+                      <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-1 text-slate-400"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">{currentNets.map((n, i) => renderNetItem(n, i))}</div>
+              </div>
+          </aside>
+        )}
 
         <main className="flex-1 relative flex flex-col min-w-0">
             <div className={`flex-1 flex flex-col p-4 sm:p-6 lg:p-10 min-h-0 ${isClassroomMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
-                {selectedNet ? (
-                    <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
-                        <div ref={workspaceRef} onMouseDown={handleCanvasDown} onTouchStart={handleCanvasDown} 
-                          className={`flex-1 flex items-center justify-center relative overflow-hidden touch-none ${isCanvasInteracting ? (interactionMode === 'rotate' ? 'cursor-grabbing' : 'cursor-move') : (activeTool === 'move' ? 'cursor-move' : (selectedPaintColor ? 'cursor-copy' : 'cursor-grab'))}`}>
-                             <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} />
-                        </div>
-                    </div>
+                {activeTab === 'single' ? (
+                  selectedNet ? (
+                      <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
+                          <div ref={workspaceRef} onMouseDown={handleCanvasDown} onTouchStart={handleCanvasDown} 
+                            className={`flex-1 flex items-center justify-center relative overflow-hidden touch-none ${isCanvasInteracting ? (interactionMode === 'rotate' ? 'cursor-grabbing' : 'cursor-move') : (activeTool === 'move' ? 'cursor-move' : (selectedPaintColor ? 'cursor-copy' : 'cursor-grab'))}`}>
+                               <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} />
+                          </div>
+                      </div>
+                  ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                          <p className="text-2xl font-black mb-4">학습할 전개도를 선택하세요</p>
+                      </div>
+                  )
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-                        <p className="text-2xl font-black mb-4">학습할 전개도를 선택하세요</p>
-                    </div>
+                  <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
+                      <div ref={compareWorkspaceRef} className="absolute inset-0">
+                        {compareLeftNet && compareRightNet ? (
+                          <CompareCanvas
+                            leftNet={compareLeftNet}
+                            rightNet={compareRightNet}
+                            scale={compareScale}
+                            leftPan={comparePanLeft}
+                            rightPan={comparePanRight}
+                            onLeftPanChange={setComparePanLeft}
+                            onRightPanChange={setComparePanRight}
+                            canvasSize={compareWorkspaceSize}
+                            showGrid={showGrid}
+                            debug={showCompareDebug}
+                            activeSide={compareActiveSide}
+                            onActiveSideChange={setCompareActiveSide}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400">전개도를 선택하세요</div>
+                        )}
+                      </div>
+
+                      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-2 text-[10px] font-black shadow">
+                          <span className="uppercase text-slate-400">공통 배율</span>
+                          <button onClick={() => adjustCompareZoom(-0.1)} className="w-7 h-7 rounded-lg bg-slate-100">-</button>
+                          <span className="min-w-[48px] text-center">{Math.round(compareZoomLevel * 100)}%</span>
+                          <button onClick={() => adjustCompareZoom(0.1)} className="w-7 h-7 rounded-lg bg-slate-100">+</button>
+                          <button
+                            onClick={() => {
+                              setCompareZoomLevel(1.0);
+                              setComparePanLeft({ x: 0, y: 0 });
+                              setComparePanRight({ x: 0, y: 0 });
+                            }}
+                            className="rounded-lg bg-slate-800 px-3 py-1 text-white"
+                          >
+                            초기화
+                          </button>
+                          <button
+                            onClick={() => setShowCompareDebug(prev => !prev)}
+                            className={`rounded-lg px-3 py-1 ${showCompareDebug ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                          >
+                            디버그
+                          </button>
+                      </div>
+
+                      {compareLeftNet && (
+                        <div className={`absolute left-4 top-4 z-40 w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'}`}>
+                          <div className="flex items-center justify-between border-b px-3 py-2">
+                            <span className="text-[10px] font-black uppercase text-red-500">빨강 전개도</span>
+                            <span className="text-[9px] font-bold text-slate-400">좌측</span>
+                          </div>
+                          <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                            <div className="space-y-2">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                              <select
+                                className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
+                                value={compareLeftNet.id}
+                                onChange={e => {
+                                  const next = compareLeftNets.find(net => net.id === e.target.value);
+                                  if (next) setCompareLeftNet(next);
+                                }}
+                              >
+                                {compareLeftNets.map(net => (
+                                  <option key={net.id} value={net.id}>
+                                    유형 {net.patternId}-{net.variantIndex}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-3 pt-2 border-t border-slate-100">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
+                              <div className="grid grid-cols-3 gap-2">
+                                {([
+                                  { key: 'l', label: '가로' },
+                                  { key: 'w', label: '세로' },
+                                  { key: 'h', label: '높이' }
+                                ] as const).map(({ key, label }) => (
+                                  <div key={key} className="space-y-2">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
+                                    <div className="flex items-center rounded-xl bg-slate-100 p-1">
+                                      <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        max={10}
+                                        value={compareLeftDims[key]}
+                                        onChange={e => updateCompareDim('left', key, Number(e.target.value))}
+                                        className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
+                                      />
+                                      <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {compareRightNet && (
+                        <div className={`absolute right-4 top-4 z-40 w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'}`}>
+                          <div className="flex items-center justify-between border-b px-3 py-2">
+                            <span className="text-[10px] font-black uppercase text-blue-500">파랑 전개도</span>
+                            <span className="text-[9px] font-bold text-slate-400">우측</span>
+                          </div>
+                          <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                            <div className="space-y-2">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                              <select
+                                className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
+                                value={compareRightNet.id}
+                                onChange={e => {
+                                  const next = compareRightNets.find(net => net.id === e.target.value);
+                                  if (next) setCompareRightNet(next);
+                                }}
+                              >
+                                {compareRightNets.map(net => (
+                                  <option key={net.id} value={net.id}>
+                                    유형 {net.patternId}-{net.variantIndex}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-3 pt-2 border-t border-slate-100">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
+                              <div className="grid grid-cols-3 gap-2">
+                                {([
+                                  { key: 'l', label: '가로' },
+                                  { key: 'w', label: '세로' },
+                                  { key: 'h', label: '높이' }
+                                ] as const).map(({ key, label }) => (
+                                  <div key={key} className="space-y-2">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
+                                    <div className="flex items-center rounded-xl bg-slate-100 p-1">
+                                      <button onClick={() => updateCompareDim('right', key, compareRightDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        max={10}
+                                        value={compareRightDims[key]}
+                                        onChange={e => updateCompareDim('right', key, Number(e.target.value))}
+                                        className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
+                                      />
+                                      <button onClick={() => updateCompareDim('right', key, compareRightDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                  </div>
                 )}
             </div>
         </main>

@@ -363,7 +363,13 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
         />
       )}
 
-      <svg className="absolute inset-0 pointer-events-none">
+      <svg
+        className="absolute inset-0 h-full w-full pointer-events-none"
+        width={canvasSize.width || 0}
+        height={canvasSize.height || 0}
+        viewBox={`0 0 ${canvasSize.width || 0} ${canvasSize.height || 0}`}
+        preserveAspectRatio="none"
+      >
         {debug && canvasSize.width > 0 && canvasSize.height > 0 && (
           <>
             <line

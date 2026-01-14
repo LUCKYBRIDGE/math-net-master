@@ -312,6 +312,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [measuredGridOffset, setMeasuredGridOffset] = useState<{ x: number; y: number } | null>(null);
+  const [measuredScale, setMeasuredScale] = useState<{ x: number; y: number } | null>(null);
   
   const rootFace = net.faces.find(f => f.id === 0);
   const netCenter = { x: net.totalWidth / 2, y: net.totalHeight / 2 };
@@ -340,13 +341,19 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     const containerRect = containerRef.current.getBoundingClientRect();
     const rootRect = rootRef.current.getBoundingClientRect();
     const leftEdge = containerRef.current.querySelector('[data-root-edge="left"]') as HTMLElement | null;
+    const rightEdge = containerRef.current.querySelector('[data-root-edge="right"]') as HTMLElement | null;
     const topEdge = containerRef.current.querySelector('[data-root-edge="up"]') as HTMLElement | null;
+    const bottomEdge = containerRef.current.querySelector('[data-root-edge="down"]') as HTMLElement | null;
+    const leftRect = leftEdge?.getBoundingClientRect();
+    const rightRect = rightEdge?.getBoundingClientRect();
+    const topRect = topEdge?.getBoundingClientRect();
+    const bottomRect = bottomEdge?.getBoundingClientRect();
     const next = {
       x: leftEdge
-        ? leftEdge.getBoundingClientRect().left + leftEdge.getBoundingClientRect().width / 2 - containerRect.left
+        ? leftRect!.left + leftRect!.width / 2 - containerRect.left
         : rootRect.left - containerRect.left,
       y: topEdge
-        ? topEdge.getBoundingClientRect().top + topEdge.getBoundingClientRect().height / 2 - containerRect.top
+        ? topRect!.top + topRect!.height / 2 - containerRect.top
         : rootRect.top - containerRect.top
     };
     setMeasuredGridOffset(prev => {
@@ -355,8 +362,26 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
       const dy = Math.abs(prev.y - next.y);
       return dx < 0.5 && dy < 0.5 ? prev : next;
     });
+    if (rootFace && leftRect && rightRect && topRect && bottomRect) {
+      const spanX = rightRect.left + rightRect.width / 2 - (leftRect.left + leftRect.width / 2);
+      const spanY = bottomRect.top + bottomRect.height / 2 - (topRect.top + topRect.height / 2);
+      const nextScale = {
+        x: spanX / rootFace.width,
+        y: spanY / rootFace.height
+      };
+      setMeasuredScale(prev => {
+        if (!prev) return nextScale;
+        const dx = Math.abs(prev.x - nextScale.x);
+        const dy = Math.abs(prev.y - nextScale.y);
+        return dx < 0.25 && dy < 0.25 ? prev : nextScale;
+      });
+    } else {
+      setMeasuredScale(null);
+    }
   }, [showGrid, isAxisAligned, rootFace, scale, panOffset.x, panOffset.y, baseOffset.x, baseOffset.y]);
 
+  const gridScaleX = measuredScale?.x ?? scale;
+  const gridScaleY = measuredScale?.y ?? scale;
   const gridLineOffset = 0.5;
   const gridBackgroundPosition = measuredGridOffset
     ? `${measuredGridOffset.x - gridLineOffset}px ${measuredGridOffset.y - gridLineOffset}px`
@@ -375,7 +400,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
               linear-gradient(to right, #cbd5e1 1px, transparent 1px),
               linear-gradient(to bottom, #cbd5e1 1px, transparent 1px)
             `,
-            backgroundSize: `${scale}px ${scale}px, ${scale}px ${scale}px, ${scale * 5}px ${scale * 5}px, ${scale * 5}px ${scale * 5}px`,
+            backgroundSize: `${gridScaleX}px ${gridScaleY}px, ${gridScaleX}px ${gridScaleY}px, ${gridScaleX * 5}px ${gridScaleY * 5}px, ${gridScaleX * 5}px ${gridScaleY * 5}px`,
             backgroundPosition: gridBackgroundPosition
           }}
         />

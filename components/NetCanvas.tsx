@@ -311,8 +311,8 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   const zShift = scale * (foldProgress / 100) * -1.5; 
   const containerRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [measuredGridOffset, setMeasuredGridOffset] = useState<{ x: number; y: number } | null>(null);
-  const [measuredScale, setMeasuredScale] = useState<{ x: number; y: number } | null>(null);
+  const [gridAdjustment, setGridAdjustment] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [gridScaleRatio, setGridScaleRatio] = useState<{ x: number; y: number }>({ x: 1, y: 1 });
   
   const rootFace = net.faces.find(f => f.id === 0);
   const netCenter = { x: net.totalWidth / 2, y: net.totalHeight / 2 };
@@ -330,14 +330,13 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
         y: baseOffset.y + panOffset.y - (rootFace.height * scale) / 2
       }
     : { x: panOffset.x, y: panOffset.y };
-  const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
   const isAxisAligned = isFlat && rotation.x === 0 && rotation.y === 0;
+  const sceneTransform = isAxisAligned
+    ? `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px)`
+    : `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
 
   useLayoutEffect(() => {
-    if (!showGrid || !isAxisAligned || !rootFace || !containerRef.current || !rootRef.current) {
-      setMeasuredGridOffset(null);
-      return;
-    }
+    if (!showGrid || !isAxisAligned || !rootFace || !containerRef.current || !rootRef.current) return;
     const containerRect = containerRef.current.getBoundingClientRect();
     const rootRect = rootRef.current.getBoundingClientRect();
     const leftEdge = containerRef.current.querySelector('[data-root-edge="left"]') as HTMLElement | null;
@@ -348,7 +347,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     const rightRect = rightEdge?.getBoundingClientRect();
     const topRect = topEdge?.getBoundingClientRect();
     const bottomRect = bottomEdge?.getBoundingClientRect();
-    const next = {
+    const measuredOrigin = {
       x: leftEdge
         ? leftRect!.left + leftRect!.width / 2 - containerRect.left
         : rootRect.left - containerRect.left,
@@ -356,36 +355,38 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
         ? topRect!.top + topRect!.height / 2 - containerRect.top
         : rootRect.top - containerRect.top
     };
-    setMeasuredGridOffset(prev => {
-      if (!prev) return next;
-      const dx = Math.abs(prev.x - next.x);
-      const dy = Math.abs(prev.y - next.y);
-      return dx < 0.5 && dy < 0.5 ? prev : next;
+    const computedOrigin = {
+      x: containerRect.width / 2 + gridOffset.x,
+      y: containerRect.height / 2 + gridOffset.y
+    };
+    const nextAdjustment = {
+      x: measuredOrigin.x - computedOrigin.x,
+      y: measuredOrigin.y - computedOrigin.y
+    };
+    setGridAdjustment(prev => {
+      const dx = Math.abs(prev.x - nextAdjustment.x);
+      const dy = Math.abs(prev.y - nextAdjustment.y);
+      return dx < 0.25 && dy < 0.25 ? prev : nextAdjustment;
     });
     if (rootFace && leftRect && rightRect && topRect && bottomRect) {
       const spanX = rightRect.left + rightRect.width / 2 - (leftRect.left + leftRect.width / 2);
       const spanY = bottomRect.top + bottomRect.height / 2 - (topRect.top + topRect.height / 2);
-      const nextScale = {
-        x: spanX / rootFace.width,
-        y: spanY / rootFace.height
+      const nextRatio = {
+        x: spanX / (rootFace.width * scale),
+        y: spanY / (rootFace.height * scale)
       };
-      setMeasuredScale(prev => {
-        if (!prev) return nextScale;
-        const dx = Math.abs(prev.x - nextScale.x);
-        const dy = Math.abs(prev.y - nextScale.y);
-        return dx < 0.25 && dy < 0.25 ? prev : nextScale;
+      setGridScaleRatio(prev => {
+        const dx = Math.abs(prev.x - nextRatio.x);
+        const dy = Math.abs(prev.y - nextRatio.y);
+        return dx < 0.01 && dy < 0.01 ? prev : nextRatio;
       });
-    } else {
-      setMeasuredScale(null);
     }
-  }, [showGrid, isAxisAligned, rootFace, scale, panOffset.x, panOffset.y, baseOffset.x, baseOffset.y]);
+  }, [showGrid, isAxisAligned, rootFace, scale, net.id, net.totalWidth, net.totalHeight, baseOffset.x, baseOffset.y]);
 
-  const gridScaleX = measuredScale?.x ?? scale;
-  const gridScaleY = measuredScale?.y ?? scale;
+  const gridScaleX = scale * gridScaleRatio.x;
+  const gridScaleY = scale * gridScaleRatio.y;
   const gridLineOffset = 0.5;
-  const gridBackgroundPosition = measuredGridOffset
-    ? `${measuredGridOffset.x - gridLineOffset}px ${measuredGridOffset.y - gridLineOffset}px`
-    : `calc(50% + ${gridOffset.x - gridLineOffset}px) calc(50% + ${gridOffset.y - gridLineOffset}px)`;
+  const gridBackgroundPosition = `calc(50% + ${gridOffset.x + gridAdjustment.x - gridLineOffset}px) calc(50% + ${gridOffset.y + gridAdjustment.y - gridLineOffset}px)`;
 
   return (
     <div ref={containerRef} className="w-full h-full relative flex items-center justify-center overflow-hidden bg-white" style={{ perspective: '6000px' }}>

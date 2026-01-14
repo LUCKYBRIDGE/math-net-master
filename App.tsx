@@ -399,7 +399,7 @@ const App: React.FC = () => {
             {isPanelCollapsed ? (
               <div className="p-3">{foldSliderOnly}</div>
             ) : (
-              <div className="p-4 space-y-6 overflow-y-auto no-scrollbar flex-1">
+              <div className="p-4 space-y-6 panel-scroll flex-1">
                   {/* 확대 및 모드 */}
                   <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">

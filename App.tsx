@@ -123,27 +123,10 @@ const App: React.FC = () => {
     setPanelSize(prev => ({ ...prev, height: defaultHeight }));
   }, [isPanelCollapsed, panelSize.height, workspaceSize.height]);
 
-  /**
-   * 배율 시스템: 
-   * 1. 전개도 크기를 화면에 맞추는 fitScale 계산
-   * 2. 사용자 zoomLevel을 곱하여 최종 scale(모눈 한 칸의 px 크기) 결정
-   */
   const computedScale = useMemo(() => {
-    if (!selectedNet || workspaceSize.width === 0 || workspaceSize.height === 0) return 40;
-    const isMobile = workspaceSize.width < 768;
-    const padding = isMobile ? 80 : (isClassroomMode ? 60 : 100); 
-    const availW = Math.max(workspaceSize.width - padding, 100);
-    const availH = Math.max(workspaceSize.height - padding, 100);
-    const netW = Math.max(selectedNet.totalWidth, 1);
-    const netH = Math.max(selectedNet.totalHeight, 1);
-    
-    // 화면에 꽉 차게 들어가는 배율
-    const fitScale = Math.min(availW / netW, availH / netH);
-    
-    // fitScale에 zoomLevel을 반영하여 직관적인 확대/축소 제공
-    // Snap scale to whole pixels to keep net edges aligned with grid lines.
-    return Math.max(5, Math.floor(fitScale * zoomLevel));
-  }, [workspaceSize, selectedNet, zoomLevel, isClassroomMode]);
+    const baseScale = 40;
+    return Math.max(5, Math.round(baseScale * zoomLevel));
+  }, [zoomLevel]);
 
   useEffect(() => {
     if (lastScaleRef.current === null) {

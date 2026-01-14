@@ -12,6 +12,7 @@ interface NetCanvasProps {
   showGrid?: boolean;
   rotation?: { x: number; y: number };
   panOffset?: { x: number; y: number };
+  canvasSize?: { width: number; height: number };
   isAnimatingRotation?: boolean;
   isRotating?: boolean;
   faceColors?: Record<number, string>;
@@ -294,6 +295,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     net, scale = 40, interactive = false, foldProgress = 0, 
     transparency = 0.2, activeParallelPairs, showGrid = true, 
     rotation = { x: 0, y: 0 }, panOffset = { x: 0, y: 0 },
+    canvasSize,
     isAnimatingRotation = false,
     isRotating = false, faceColors, onFaceClick, isPaintingMode, showEdgeMatches,
     diceStyle = 'none',
@@ -327,7 +329,9 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     : { x: 0, y: 0 };
   const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
   const gridLineOffset = 0.5;
-  const gridBackgroundPosition = `calc(50% + ${gridOffset.x - gridLineOffset}px) calc(50% + ${gridOffset.y - gridLineOffset}px)`;
+  const gridBackgroundPosition = canvasSize && canvasSize.width > 0 && canvasSize.height > 0
+    ? `${Math.round(canvasSize.width / 2 + gridOffset.x - gridLineOffset)}px ${Math.round(canvasSize.height / 2 + gridOffset.y - gridLineOffset)}px`
+    : `calc(50% + ${gridOffset.x - gridLineOffset}px) calc(50% + ${gridOffset.y - gridLineOffset}px)`;
 
   return (
     <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-white" style={{ perspective: '6000px' }}>

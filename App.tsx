@@ -49,6 +49,17 @@ const App: React.FC = () => {
   const [comparePanRight, setComparePanRight] = useState({ x: 0, y: 0 });
   const [compareActiveSide, setCompareActiveSide] = useState<'left' | 'right'>('left');
   const [showCompareDebug, setShowCompareDebug] = useState(false);
+  const [comparePanelPos, setComparePanelPos] = useState({
+    left: { x: 24, y: 24 },
+    right: { x: 24, y: 24 }
+  });
+  const [isComparePanelDragging, setIsComparePanelDragging] = useState<'left' | 'right' | null>(null);
+  const comparePanelPosRef = useRef({ left: { x: 24, y: 24 }, right: { x: 24, y: 24 } });
+  const comparePanelDragOffset = useRef({ x: 0, y: 0 });
+  const comparePanelMoved = useRef({ left: false, right: false });
+  const compareLeftPanelRef = useRef<HTMLDivElement>(null);
+  const compareRightPanelRef = useRef<HTMLDivElement>(null);
+  const comparePanInitialized = useRef(false);
 
   const layoutRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -91,6 +102,10 @@ const App: React.FC = () => {
     updateSize();
     return () => observer.disconnect();
   }, [compareLeftNet, compareRightNet, activeTab]);
+
+  useEffect(() => {
+    comparePanelPosRef.current = comparePanelPos;
+  }, [comparePanelPos]);
 
   useEffect(() => {
     if (!layoutRef.current || !controlRef.current) return;
@@ -150,6 +165,41 @@ const App: React.FC = () => {
     setPanelSize(prev => ({ ...prev, height: defaultHeight }));
   }, [isPanelCollapsed, panelSize.height, workspaceSize.height]);
 
+  useEffect(() => {
+    if (activeTab !== 'compare' || !layoutRef.current) return;
+    const layoutRect = layoutRef.current.getBoundingClientRect();
+    const leftRect = compareLeftPanelRef.current?.getBoundingClientRect();
+    const rightRect = compareRightPanelRef.current?.getBoundingClientRect();
+    if (leftRect && !comparePanelMoved.current.left) {
+      setComparePanelPos(prev => ({
+        ...prev,
+        left: { x: 24, y: 24 }
+      }));
+    }
+    if (rightRect && !comparePanelMoved.current.right) {
+      const rightX = Math.max(24, layoutRect.width - rightRect.width - 24);
+      setComparePanelPos(prev => ({
+        ...prev,
+        right: { x: rightX, y: 24 }
+      }));
+    }
+  }, [activeTab, compareWorkspaceSize.width, compareWorkspaceSize.height]);
+
+  const handleComparePanelDragStart = (
+    side: 'left' | 'right',
+    e: React.MouseEvent | React.TouchEvent
+  ) => {
+    if (!layoutRef.current) return;
+    const panel = side === 'left' ? compareLeftPanelRef.current : compareRightPanelRef.current;
+    if (!panel) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    const rect = panel.getBoundingClientRect();
+    comparePanelDragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
+    comparePanelMoved.current[side] = true;
+    setIsComparePanelDragging(side);
+  };
+
   const computedScale = useMemo(() => {
     const baseScale = 40;
     return Math.max(5, Math.round(baseScale * zoomLevel));
@@ -193,6 +243,20 @@ const App: React.FC = () => {
       compareScaleRef.current = compareScale;
     }
   }, [compareScale]);
+
+  useEffect(() => {
+    if (activeTab !== 'compare') {
+      comparePanInitialized.current = false;
+      return;
+    }
+    if (!compareLeftNet || !compareRightNet || comparePanInitialized.current) return;
+    const gapUnits = 2;
+    const leftOffsetUnits = compareLeftNet.totalWidth / 2 + gapUnits;
+    const rightOffsetUnits = compareRightNet.totalWidth / 2 + gapUnits;
+    setComparePanLeft({ x: -Math.round(leftOffsetUnits * compareScale), y: 0 });
+    setComparePanRight({ x: Math.round(rightOffsetUnits * compareScale), y: 0 });
+    comparePanInitialized.current = true;
+  }, [activeTab, compareLeftNet, compareRightNet, compareScale]);
 
   const handleCanvasDown = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
@@ -391,6 +455,42 @@ const App: React.FC = () => {
       setCompareRightDims(prev => ({ ...prev, [key]: clampDim(value) }));
     }
   };
+
+  useEffect(() => {
+    if (!isComparePanelDragging || !layoutRef.current) return;
+
+    const handleMove = (event: MouseEvent | TouchEvent) => {
+      const panel = isComparePanelDragging === 'left' ? compareLeftPanelRef.current : compareRightPanelRef.current;
+      if (!panel || !layoutRef.current) return;
+      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+      const layoutRect = layoutRef.current.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      let nextX = clientX - layoutRect.left - comparePanelDragOffset.current.x;
+      let nextY = clientY - layoutRect.top - comparePanelDragOffset.current.y;
+      nextX = Math.max(0, Math.min(nextX, layoutRect.width - panelRect.width));
+      nextY = Math.max(0, Math.min(nextY, layoutRect.height - panelRect.height));
+      setComparePanelPos(prev => ({
+        ...prev,
+        [isComparePanelDragging]: { x: nextX, y: nextY }
+      }));
+    };
+
+    const handleEnd = () => {
+      setIsComparePanelDragging(null);
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isComparePanelDragging]);
 
   const stepFold = (delta: number) => {
     setFoldProgress(prev => Math.max(0, Math.min(100, prev + delta)));
@@ -712,8 +812,16 @@ const App: React.FC = () => {
                       </div>
 
                       {compareLeftNet && (
-                        <div className={`absolute left-4 top-4 z-40 w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'}`}>
-                          <div className="flex items-center justify-between border-b px-3 py-2">
+                        <div
+                          ref={compareLeftPanelRef}
+                          style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.left.x}px, ${comparePanelPos.left.y}px, 0)` }}
+                          className={`absolute z-40 w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'}`}
+                        >
+                          <div
+                            onMouseDown={(e) => handleComparePanelDragStart('left', e)}
+                            onTouchStart={(e) => handleComparePanelDragStart('left', e)}
+                            className="flex cursor-grab items-center justify-between border-b px-3 py-2 active:cursor-grabbing"
+                          >
                             <span className="text-[10px] font-black uppercase text-red-500">빨강 전개도</span>
                             <span className="text-[9px] font-bold text-slate-400">좌측</span>
                           </div>
@@ -766,8 +874,16 @@ const App: React.FC = () => {
                       )}
 
                       {compareRightNet && (
-                        <div className={`absolute right-4 top-4 z-40 w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'}`}>
-                          <div className="flex items-center justify-between border-b px-3 py-2">
+                        <div
+                          ref={compareRightPanelRef}
+                          style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.right.x}px, ${comparePanelPos.right.y}px, 0)` }}
+                          className={`absolute z-40 w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'}`}
+                        >
+                          <div
+                            onMouseDown={(e) => handleComparePanelDragStart('right', e)}
+                            onTouchStart={(e) => handleComparePanelDragStart('right', e)}
+                            className="flex cursor-grab items-center justify-between border-b px-3 py-2 active:cursor-grabbing"
+                          >
                             <span className="text-[10px] font-black uppercase text-blue-500">파랑 전개도</span>
                             <span className="text-[9px] font-bold text-slate-400">우측</span>
                           </div>

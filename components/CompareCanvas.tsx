@@ -193,6 +193,14 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
     x: canvasSize.width / 2,
     y: canvasSize.height / 2
   };
+  const leftRootCenterPx = {
+    x: canvasCenter.x + leftAlignment.baseOffset.x + leftPan.x,
+    y: canvasCenter.y + leftAlignment.baseOffset.y + leftPan.y
+  };
+  const rightRootCenterPx = {
+    x: canvasCenter.x + rightAlignment.baseOffset.x + rightPan.x,
+    y: canvasCenter.y + rightAlignment.baseOffset.y + rightPan.y
+  };
 
   const snapToGrid = (value: number) => Math.round(value / scale) * scale;
 
@@ -356,6 +364,30 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
       )}
 
       <svg className="absolute inset-0 pointer-events-none">
+        {debug && canvasSize.width > 0 && canvasSize.height > 0 && (
+          <>
+            <line
+              x1={canvasCenter.x}
+              y1={0}
+              x2={canvasCenter.x}
+              y2={canvasSize.height}
+              stroke="#94a3b8"
+              strokeWidth={1}
+              strokeDasharray="4 4"
+            />
+            <line
+              x1={0}
+              y1={canvasCenter.y}
+              x2={canvasSize.width}
+              y2={canvasCenter.y}
+              stroke="#94a3b8"
+              strokeWidth={1}
+              strokeDasharray="4 4"
+            />
+            <circle cx={leftRootCenterPx.x} cy={leftRootCenterPx.y} r={4} fill="#ef4444" />
+            <circle cx={rightRootCenterPx.x} cy={rightRootCenterPx.y} r={4} fill="#3b82f6" />
+          </>
+        )}
         {renderEdges(leftOnlyEdges, '#ef4444')}
         {renderEdges(rightOnlyEdges, '#3b82f6')}
         {renderEdges(overlapEdges, '#a855f7')}

@@ -36,6 +36,7 @@ const App: React.FC = () => {
   const lastMousePos = useRef({ x: 0, y: 0 });
   const isDraggingNet = useRef(false);
   const [animDuration, setAnimDuration] = useState(1.5); 
+  const lastScaleRef = useRef<number | null>(null);
 
   const layoutRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -135,6 +136,21 @@ const App: React.FC = () => {
     // Snap scale to whole pixels to keep net edges aligned with grid lines.
     return Math.max(5, Math.floor(fitScale * zoomLevel));
   }, [workspaceSize, selectedNet, zoomLevel, isClassroomMode]);
+
+  useEffect(() => {
+    if (lastScaleRef.current === null) {
+      lastScaleRef.current = computedScale;
+      return;
+    }
+    if (lastScaleRef.current !== computedScale) {
+      const ratio = computedScale / lastScaleRef.current;
+      setPanOffset(prev => ({
+        x: Math.round(prev.x * ratio),
+        y: Math.round(prev.y * ratio)
+      }));
+      lastScaleRef.current = computedScale;
+    }
+  }, [computedScale]);
 
   const handleCanvasDown = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;

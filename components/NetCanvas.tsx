@@ -321,10 +321,10 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   };
   const gridOffset = rootFace
     ? {
-        x: baseOffset.x + panOffset.x - (rootFace.width * scale) / 2,
-        y: baseOffset.y + panOffset.y - (rootFace.height * scale) / 2
+        x: baseOffset.x - (rootFace.width * scale) / 2,
+        y: baseOffset.y - (rootFace.height * scale) / 2
       }
-    : { x: panOffset.x, y: panOffset.y };
+    : { x: 0, y: 0 };
   const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
   const gridLineOffset = 0.5;
   const gridBackgroundPosition = `calc(50% + ${gridOffset.x - gridLineOffset}px) calc(50% + ${gridOffset.y - gridLineOffset}px)`;

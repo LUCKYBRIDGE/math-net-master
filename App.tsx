@@ -200,6 +200,12 @@ const App: React.FC = () => {
       if (isDragging) setControlPos(controlPosRef.current);
       setIsDragging(false);
       setIsResizing(false);
+      if (isCanvasInteracting && interactionMode === 'move') {
+        setPanOffset(prev => ({
+          x: snapToGrid(prev.x, computedScale),
+          y: snapToGrid(prev.y, computedScale)
+        }));
+      }
       setIsCanvasInteracting(false);
     };
 
@@ -213,7 +219,7 @@ const App: React.FC = () => {
       window.removeEventListener('touchmove', handleGlobalMove);
       window.removeEventListener('touchend', handleGlobalEnd);
     };
-  }, [isDragging, isResizing, isCanvasInteracting, interactionMode]);
+  }, [isDragging, isResizing, isCanvasInteracting, interactionMode, computedScale]);
 
   useEffect(() => {
     setFoldProgress(0);
@@ -268,6 +274,7 @@ const App: React.FC = () => {
   const adjustZoom = (delta: number) => {
     setZoomLevel(prev => Math.max(0.1, Math.min(5.0, Math.round((prev + delta) * 10) / 10)));
   };
+  const snapToGrid = (value: number, grid: number) => Math.round(value / grid) * grid;
 
   const clampDim = (value: number) => Math.max(1, Math.min(10, Math.round(value)));
 

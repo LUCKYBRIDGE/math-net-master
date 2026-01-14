@@ -50,6 +50,7 @@ const App: React.FC = () => {
   const resizeStart = useRef({ x: 0, y: 0, width: 280, height: 0 });
   const controlPosRef = useRef({ x: 0, y: 0 });
   const controlRef = useRef<HTMLDivElement>(null);
+  const hasResizedPanel = useRef(false);
 
   useEffect(() => {
     const workspace = workspaceRef.current;
@@ -109,11 +110,18 @@ const App: React.FC = () => {
     e.stopPropagation();
     setIsResizing(true);
     setHasMovedManually(true);
+    hasResizedPanel.current = true;
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     const rect = controlRef.current.getBoundingClientRect();
     resizeStart.current = { x: clientX, y: clientY, width: rect.width, height: rect.height };
   };
+
+  useEffect(() => {
+    if (isPanelCollapsed || hasResizedPanel.current || panelSize.height !== 0 || workspaceSize.height === 0) return;
+    const defaultHeight = Math.max(220, Math.min(600, workspaceSize.height - 48));
+    setPanelSize(prev => ({ ...prev, height: defaultHeight }));
+  }, [isPanelCollapsed, panelSize.height, workspaceSize.height]);
 
   /**
    * 배율 시스템: 

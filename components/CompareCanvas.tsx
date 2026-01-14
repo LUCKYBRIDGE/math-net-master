@@ -392,6 +392,30 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
             />
             <circle cx={leftRootCenterPx.x} cy={leftRootCenterPx.y} r={4} fill="#ef4444" />
             <circle cx={rightRootCenterPx.x} cy={rightRootCenterPx.y} r={4} fill="#3b82f6" />
+            {leftBounds && (
+              <rect
+                x={leftBounds.left}
+                y={leftBounds.top}
+                width={leftBounds.right - leftBounds.left}
+                height={leftBounds.bottom - leftBounds.top}
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth={1}
+                strokeDasharray="6 4"
+              />
+            )}
+            {rightBounds && (
+              <rect
+                x={rightBounds.left}
+                y={rightBounds.top}
+                width={rightBounds.right - rightBounds.left}
+                height={rightBounds.bottom - rightBounds.top}
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth={1}
+                strokeDasharray="6 4"
+              />
+            )}
           </>
         )}
         {renderEdges(leftOnlyEdges, '#ef4444')}
@@ -407,6 +431,9 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
           <div>right offset: {rightAlignment.baseOffset.x.toFixed(1)}, {rightAlignment.baseOffset.y.toFixed(1)}</div>
           <div>right pan: {rightPan.x.toFixed(1)}, {rightPan.y.toFixed(1)}</div>
           <div>active: {activeSide}</div>
+          <div>left edges: {leftOnlyEdges.length}</div>
+          <div>right edges: {rightOnlyEdges.length}</div>
+          <div>overlap: {overlapEdges.length}</div>
         </div>
       )}
     </div>

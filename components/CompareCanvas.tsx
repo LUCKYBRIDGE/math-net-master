@@ -23,7 +23,6 @@ interface CompareCanvasProps {
   onRightPanChange: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
   canvasSize: { width: number; height: number };
   showGrid?: boolean;
-  debug?: boolean;
   activeSide?: Side;
   onActiveSideChange?: (side: Side) => void;
 }
@@ -132,7 +131,6 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
   onRightPanChange,
   canvasSize,
   showGrid = true,
-  debug = false,
   activeSide = 'left',
   onActiveSideChange
 }) => {
@@ -192,14 +190,6 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
   const canvasCenter = {
     x: canvasSize.width / 2,
     y: canvasSize.height / 2
-  };
-  const leftRootCenterPx = {
-    x: canvasCenter.x + leftAlignment.baseOffset.x + leftPan.x,
-    y: canvasCenter.y + leftAlignment.baseOffset.y + leftPan.y
-  };
-  const rightRootCenterPx = {
-    x: canvasCenter.x + rightAlignment.baseOffset.x + rightPan.x,
-    y: canvasCenter.y + rightAlignment.baseOffset.y + rightPan.y
   };
 
   const snapToGrid = (value: number) => Math.round(value / scale) * scale;
@@ -275,13 +265,11 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
       if (side === 'left') {
         onLeftPanChange(prev => {
           const next = { x: snapToGrid(prev.x), y: snapToGrid(prev.y) };
-          if (debug) console.info('compare snap', { side: 'left', before: prev, after: next });
           return next;
         });
       } else {
         onRightPanChange(prev => {
           const next = { x: snapToGrid(prev.x), y: snapToGrid(prev.y) };
-          if (debug) console.info('compare snap', { side: 'right', before: prev, after: next });
           return next;
         });
       }
@@ -299,7 +287,7 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
       window.removeEventListener('touchmove', handleMove);
       window.removeEventListener('touchend', handleEnd);
     };
-  }, [debug, onLeftPanChange, onRightPanChange, scale]);
+  }, [onLeftPanChange, onRightPanChange, scale]);
 
   const renderEdges = (edges: EdgeUnit[], color: string) => {
     const sw = Math.max(0.5, scale / 40);
@@ -370,72 +358,10 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
         viewBox={`0 0 ${canvasSize.width || 0} ${canvasSize.height || 0}`}
         preserveAspectRatio="none"
       >
-        {debug && canvasSize.width > 0 && canvasSize.height > 0 && (
-          <>
-            <line
-              x1={canvasCenter.x}
-              y1={0}
-              x2={canvasCenter.x}
-              y2={canvasSize.height}
-              stroke="#94a3b8"
-              strokeWidth={1}
-              strokeDasharray="4 4"
-            />
-            <line
-              x1={0}
-              y1={canvasCenter.y}
-              x2={canvasSize.width}
-              y2={canvasCenter.y}
-              stroke="#94a3b8"
-              strokeWidth={1}
-              strokeDasharray="4 4"
-            />
-            <circle cx={leftRootCenterPx.x} cy={leftRootCenterPx.y} r={4} fill="#ef4444" />
-            <circle cx={rightRootCenterPx.x} cy={rightRootCenterPx.y} r={4} fill="#3b82f6" />
-            {leftBounds && (
-              <rect
-                x={leftBounds.left}
-                y={leftBounds.top}
-                width={leftBounds.right - leftBounds.left}
-                height={leftBounds.bottom - leftBounds.top}
-                fill="none"
-                stroke="#ef4444"
-                strokeWidth={1}
-                strokeDasharray="6 4"
-              />
-            )}
-            {rightBounds && (
-              <rect
-                x={rightBounds.left}
-                y={rightBounds.top}
-                width={rightBounds.right - rightBounds.left}
-                height={rightBounds.bottom - rightBounds.top}
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth={1}
-                strokeDasharray="6 4"
-              />
-            )}
-          </>
-        )}
         {renderEdges(leftOnlyEdges, '#ef4444')}
         {renderEdges(rightOnlyEdges, '#3b82f6')}
         {renderEdges(overlapEdges, '#a855f7')}
       </svg>
-
-      {debug && (
-        <div className="absolute left-3 top-3 rounded-lg bg-white/90 p-2 text-[10px] font-mono text-slate-600 shadow">
-          <div>scale: {scale}px</div>
-          <div>left offset: {leftAlignment.baseOffset.x.toFixed(1)}, {leftAlignment.baseOffset.y.toFixed(1)}</div>
-          <div>left pan: {leftPan.x.toFixed(1)}, {leftPan.y.toFixed(1)}</div>
-          <div>right offset: {rightAlignment.baseOffset.x.toFixed(1)}, {rightAlignment.baseOffset.y.toFixed(1)}</div>
-          <div>right pan: {rightPan.x.toFixed(1)}, {rightPan.y.toFixed(1)}</div>
-          <div>active: {activeSide}</div>
-          <div>left edges: {leftOnlyEdges.length}</div>
-          <div>right edges: {rightOnlyEdges.length}</div>
-          <div>overlap: {overlapEdges.length}</div>
-        </div>
-      )}
     </div>
   );
 };

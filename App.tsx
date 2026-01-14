@@ -48,7 +48,6 @@ const App: React.FC = () => {
   const [comparePanLeft, setComparePanLeft] = useState({ x: 0, y: 0 });
   const [comparePanRight, setComparePanRight] = useState({ x: 0, y: 0 });
   const [compareActiveSide, setCompareActiveSide] = useState<'left' | 'right'>('left');
-  const [showCompareDebug, setShowCompareDebug] = useState(false);
   const [comparePanelPos, setComparePanelPos] = useState({
     left: { x: 24, y: 24 },
     right: { x: 24, y: 24 }
@@ -779,7 +778,6 @@ const App: React.FC = () => {
                             onRightPanChange={setComparePanRight}
                             canvasSize={compareWorkspaceSize}
                             showGrid={showGrid}
-                            debug={showCompareDebug}
                             activeSide={compareActiveSide}
                             onActiveSideChange={setCompareActiveSide}
                           />
@@ -802,12 +800,6 @@ const App: React.FC = () => {
                             className="rounded-lg bg-slate-800 px-3 py-1 text-white"
                           >
                             초기화
-                          </button>
-                          <button
-                            onClick={() => setShowCompareDebug(prev => !prev)}
-                            className={`rounded-lg px-3 py-1 ${showCompareDebug ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}
-                          >
-                            디버그
                           </button>
                       </div>
 

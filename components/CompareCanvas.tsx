@@ -19,6 +19,8 @@ interface CompareCanvasProps {
   scale: number;
   leftPan: { x: number; y: number };
   rightPan: { x: number; y: number };
+  leftFoldProgress: number;
+  rightFoldProgress: number;
   onLeftPanChange: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
   onRightPanChange: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
   canvasSize: { width: number; height: number };
@@ -127,6 +129,8 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
   scale,
   leftPan,
   rightPan,
+  leftFoldProgress,
+  rightFoldProgress,
   onLeftPanChange,
   onRightPanChange,
   canvasSize,
@@ -289,12 +293,13 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
     };
   }, [onLeftPanChange, onRightPanChange, scale]);
 
-  const renderEdges = (edges: EdgeUnit[], color: string) => {
+  const renderEdges = (edges: EdgeUnit[], color: string, foldProgress: number) => {
     const sw = Math.max(0.5, scale / 40);
     const foldWidth = 1.5 * sw;
     const solidWidth = 3.5 * sw;
     const dashSize = Math.max(4, 6 * sw);
-    const gapSize = Math.max(2, 4 * sw);
+    const gapBase = Math.max(2, 4 * sw);
+    const gapSize = Math.max(0, gapBase * (1 - Math.min(100, Math.max(0, foldProgress)) / 100));
 
     return edges.map((edge, idx) => {
       const x1 = canvasCenter.x + edge.x1 * scale;
@@ -311,7 +316,7 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
           y2={y2}
           stroke={color}
           strokeWidth={isFold ? foldWidth : solidWidth}
-          strokeDasharray={isFold ? `${dashSize} ${gapSize}` : undefined}
+          strokeDasharray={isFold && gapSize >= 0.5 ? `${dashSize} ${gapSize}` : undefined}
           strokeLinecap="square"
           shapeRendering="crispEdges"
         />
@@ -358,9 +363,9 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
         viewBox={`0 0 ${canvasSize.width || 0} ${canvasSize.height || 0}`}
         preserveAspectRatio="none"
       >
-        {renderEdges(leftOnlyEdges, '#ef4444')}
-        {renderEdges(rightOnlyEdges, '#3b82f6')}
-        {renderEdges(overlapEdges, '#a855f7')}
+        {renderEdges(leftOnlyEdges, '#ef4444', leftFoldProgress)}
+        {renderEdges(rightOnlyEdges, '#3b82f6', rightFoldProgress)}
+        {renderEdges(overlapEdges, '#a855f7', Math.max(leftFoldProgress, rightFoldProgress))}
       </svg>
     </div>
   );

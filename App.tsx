@@ -45,6 +45,8 @@ const App: React.FC = () => {
   const [compareLeftNet, setCompareLeftNet] = useState<NetData | null>(null);
   const [compareRightNet, setCompareRightNet] = useState<NetData | null>(null);
   const [compareZoomLevel, setCompareZoomLevel] = useState(1.0);
+  const [compareFoldLeft, setCompareFoldLeft] = useState(0);
+  const [compareFoldRight, setCompareFoldRight] = useState(0);
   const [comparePanLeft, setComparePanLeft] = useState({ x: 0, y: 0 });
   const [comparePanRight, setComparePanRight] = useState({ x: 0, y: 0 });
   const [compareActiveSide, setCompareActiveSide] = useState<'left' | 'right'>('left');
@@ -455,6 +457,8 @@ const App: React.FC = () => {
     }
   };
 
+  const compareFoldCommon = Math.round((compareFoldLeft + compareFoldRight) / 2);
+
   useEffect(() => {
     if (!isComparePanelDragging) return;
 
@@ -788,6 +792,8 @@ const App: React.FC = () => {
                             scale={compareScale}
                             leftPan={comparePanLeft}
                             rightPan={comparePanRight}
+                            leftFoldProgress={compareFoldLeft}
+                            rightFoldProgress={compareFoldRight}
                             onLeftPanChange={setComparePanLeft}
                             onRightPanChange={setComparePanRight}
                             canvasSize={compareWorkspaceSize}
@@ -800,16 +806,34 @@ const App: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-2 text-[10px] font-black shadow">
+                      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center gap-3 rounded-2xl bg-white/90 px-4 py-2 text-[10px] font-black shadow">
                           <span className="uppercase text-slate-400">공통 배율</span>
                           <button onClick={() => adjustCompareZoom(-0.1)} className="w-7 h-7 rounded-lg bg-slate-100">-</button>
                           <span className="min-w-[48px] text-center">{Math.round(compareZoomLevel * 100)}%</span>
                           <button onClick={() => adjustCompareZoom(0.1)} className="w-7 h-7 rounded-lg bg-slate-100">+</button>
+                          <div className="flex items-center gap-2">
+                            <span className="uppercase text-slate-400">공통 접기</span>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={compareFoldCommon}
+                              onChange={e => {
+                                const next = Number(e.target.value);
+                                setCompareFoldLeft(next);
+                                setCompareFoldRight(next);
+                              }}
+                              className="h-1.5 w-28 rounded-lg bg-slate-100 accent-blue-600"
+                            />
+                            <span className="min-w-[32px] text-right text-[9px] text-slate-500">{compareFoldCommon}%</span>
+                          </div>
                           <button
                             onClick={() => {
                               setCompareZoomLevel(1.0);
                               setComparePanLeft({ x: 0, y: 0 });
                               setComparePanRight({ x: 0, y: 0 });
+                              setCompareFoldLeft(0);
+                              setCompareFoldRight(0);
                             }}
                             className="rounded-lg bg-slate-800 px-3 py-1 text-white"
                           >
@@ -847,8 +871,8 @@ const App: React.FC = () => {
                           </div>
                           {!comparePanelCollapsed.left && (
                             <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
-                            <div className="space-y-2">
-                              <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                               <select
                                 className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
                                 value={compareLeftNet.id}
@@ -890,6 +914,18 @@ const App: React.FC = () => {
                                 ))}
                               </div>
                             </div>
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={compareFoldLeft}
+                                onChange={e => setCompareFoldLeft(Number(e.target.value))}
+                                className="h-1.5 w-full rounded-lg bg-slate-100 accent-red-500"
+                              />
+                              <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldLeft}%</div>
+                            </div>
                             </div>
                           )}
                         </div>
@@ -925,8 +961,8 @@ const App: React.FC = () => {
                           </div>
                           {!comparePanelCollapsed.right && (
                             <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
-                            <div className="space-y-2">
-                              <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                               <select
                                 className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
                                 value={compareRightNet.id}
@@ -967,6 +1003,18 @@ const App: React.FC = () => {
                                   </div>
                                 ))}
                               </div>
+                            </div>
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={compareFoldRight}
+                                onChange={e => setCompareFoldRight(Number(e.target.value))}
+                                className="h-1.5 w-full rounded-lg bg-slate-100 accent-blue-500"
+                              />
+                              <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldRight}%</div>
                             </div>
                             </div>
                           )}

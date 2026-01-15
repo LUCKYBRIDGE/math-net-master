@@ -507,7 +507,7 @@ const App: React.FC = () => {
   const renderNetItem = (net: NetData, idx: number) => {
     const scale = Math.min(150 / Math.max(net.totalWidth, 1), 80 / Math.max(net.totalHeight, 1), 25);
     return (
-        <button key={`${net.id}-${idx}`} onClick={() => setSelectedNet(net)}
+        <button key={`${net.id}-${idx}`} onClick={() => { setSelectedNet(net); setIsSidebarOpen(false); }}
             className={`w-full flex flex-col items-center p-3 rounded-xl border-2 transition-all duration-200 ${selectedNet?.id === net.id ? 'border-blue-500 bg-blue-50/50' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
             <div className="w-full h-28 relative pointer-events-none overflow-hidden rounded-lg border bg-slate-50/50 border-slate-100">
                 <NetCanvas net={net} scale={scale} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{x:0, y:0}} showGrid={false} />
@@ -556,7 +556,20 @@ const App: React.FC = () => {
     <div className={`flex flex-col h-screen overflow-hidden font-sans select-none transition-all duration-700 ${isClassroomMode ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
       <header className={`flex-none border-b px-4 py-3 shadow-sm z-40 flex items-center justify-between transition-all duration-500 ${isClassroomMode ? 'bg-black/40 backdrop-blur-md border-white/5' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center gap-3">
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-lg hover:bg-slate-100"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+          {activeTab === 'single' && (
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span>{isSidebarOpen ? '목록 닫기' : '목록 열기'}</span>
+              <svg className={`w-4 h-4 transition-transform ${isSidebarOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          )}
           <h1 className="text-lg font-black tracking-tighter uppercase">전개도 마스터</h1>
         </div>
         

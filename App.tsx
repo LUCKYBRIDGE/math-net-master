@@ -52,6 +52,7 @@ const App: React.FC = () => {
     left: { x: 24, y: 24 },
     right: { x: 24, y: 24 }
   });
+  const [comparePanelCollapsed, setComparePanelCollapsed] = useState({ left: false, right: false });
   const [isComparePanelDragging, setIsComparePanelDragging] = useState<'left' | 'right' | null>(null);
   const comparePanelPosRef = useRef({ left: { x: 24, y: 24 }, right: { x: 24, y: 24 } });
   const comparePanelDragOffset = useRef({ x: 0, y: 0 });
@@ -186,7 +187,6 @@ const App: React.FC = () => {
     side: 'left' | 'right',
     e: React.MouseEvent | React.TouchEvent
   ) => {
-    if (!layoutRef.current) return;
     const panel = side === 'left' ? compareLeftPanelRef.current : compareRightPanelRef.current;
     if (!panel) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
@@ -456,19 +456,20 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isComparePanelDragging || !layoutRef.current) return;
+    if (!isComparePanelDragging) return;
 
     const handleMove = (event: MouseEvent | TouchEvent) => {
       const panel = isComparePanelDragging === 'left' ? compareLeftPanelRef.current : compareRightPanelRef.current;
-      if (!panel || !layoutRef.current) return;
+      if (!panel) return;
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
-      const layoutRect = layoutRef.current.getBoundingClientRect();
       const panelRect = panel.getBoundingClientRect();
-      let nextX = clientX - layoutRect.left - comparePanelDragOffset.current.x;
-      let nextY = clientY - layoutRect.top - comparePanelDragOffset.current.y;
-      nextX = Math.max(0, Math.min(nextX, layoutRect.width - panelRect.width));
-      nextY = Math.max(0, Math.min(nextY, layoutRect.height - panelRect.height));
+      const viewportWidth = document.documentElement.clientWidth;
+      const viewportHeight = document.documentElement.clientHeight;
+      let nextX = clientX - comparePanelDragOffset.current.x;
+      let nextY = clientY - comparePanelDragOffset.current.y;
+      nextX = Math.max(0, Math.min(nextX, viewportWidth - panelRect.width));
+      nextY = Math.max(0, Math.min(nextY, viewportHeight - panelRect.height));
       setComparePanelPos(prev => ({
         ...prev,
         [isComparePanelDragging]: { x: nextX, y: nextY }
@@ -820,7 +821,7 @@ const App: React.FC = () => {
                         <div
                           ref={compareLeftPanelRef}
                           style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.left.x}px, ${comparePanelPos.left.y}px, 0)` }}
-                          className={`absolute z-40 w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'}`}
+                          className={`fixed z-[70] w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'}`}
                         >
                           <div
                             onMouseDown={(e) => handleComparePanelDragStart('left', e)}
@@ -828,9 +829,24 @@ const App: React.FC = () => {
                             className="flex cursor-grab items-center justify-between border-b px-3 py-2 active:cursor-grabbing"
                           >
                             <span className="text-[10px] font-black uppercase text-red-500">빨강 전개도</span>
-                            <span className="text-[9px] font-bold text-slate-400">좌측</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-bold text-slate-400">좌측</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setComparePanelCollapsed(prev => ({ ...prev, left: !prev.left }));
+                                }}
+                                className="rounded-md p-1 hover:bg-slate-100"
+                                aria-label="왼쪽 패널 접기/펼치기"
+                              >
+                                <svg className={`h-4 w-4 transition-transform ${comparePanelCollapsed.left ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
-                          <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                          {!comparePanelCollapsed.left && (
+                            <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
                             <div className="space-y-2">
                               <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                               <select
@@ -874,7 +890,8 @@ const App: React.FC = () => {
                                 ))}
                               </div>
                             </div>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -882,7 +899,7 @@ const App: React.FC = () => {
                         <div
                           ref={compareRightPanelRef}
                           style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.right.x}px, ${comparePanelPos.right.y}px, 0)` }}
-                          className={`absolute z-40 w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'}`}
+                          className={`fixed z-[70] w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'}`}
                         >
                           <div
                             onMouseDown={(e) => handleComparePanelDragStart('right', e)}
@@ -890,9 +907,24 @@ const App: React.FC = () => {
                             className="flex cursor-grab items-center justify-between border-b px-3 py-2 active:cursor-grabbing"
                           >
                             <span className="text-[10px] font-black uppercase text-blue-500">파랑 전개도</span>
-                            <span className="text-[9px] font-bold text-slate-400">우측</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-bold text-slate-400">우측</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setComparePanelCollapsed(prev => ({ ...prev, right: !prev.right }));
+                                }}
+                                className="rounded-md p-1 hover:bg-slate-100"
+                                aria-label="오른쪽 패널 접기/펼치기"
+                              >
+                                <svg className={`h-4 w-4 transition-transform ${comparePanelCollapsed.right ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
-                          <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                          {!comparePanelCollapsed.right && (
+                            <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
                             <div className="space-y-2">
                               <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                               <select
@@ -936,7 +968,8 @@ const App: React.FC = () => {
                                 ))}
                               </div>
                             </div>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       )}
                   </div>

@@ -234,10 +234,15 @@ const FoldableFace: React.FC<{
   showEdgeMatches?: boolean;
   foldProgress: number;
   diceStyle?: 'none' | 'number' | 'dot';
+  linePalette: {
+    solid: string;
+    fold: string;
+    muted: string;
+  };
 }> = ({ 
   face, allFaces, scale, foldAngle, faceOpacity, 
   interactive, isFlat, activeParallelPairs,
-  faceColors, onFaceClick, isPaintingMode, showEdgeMatches, foldProgress, diceStyle
+  faceColors, onFaceClick, isPaintingMode, showEdgeMatches, foldProgress, diceStyle, linePalette
 }) => {
   const children = allFaces.filter(f => f.parentId === face.id);
   
@@ -294,7 +299,7 @@ const FoldableFace: React.FC<{
               transformOrigin: origin, transform: transform, transformStyle: 'preserve-3d',
               transition: isFlat ? 'none' : 'transform 0.1s linear', ...pos
             }}>
-            <FoldableFace face={child} allFaces={allFaces} scale={scale} foldAngle={foldAngle} faceOpacity={faceOpacity} interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs} faceColors={faceColors} onFaceClick={onFaceClick} isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches} foldProgress={foldProgress} diceStyle={diceStyle} />
+            <FoldableFace face={child} allFaces={allFaces} scale={scale} foldAngle={foldAngle} faceOpacity={faceOpacity} interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs} faceColors={faceColors} onFaceClick={onFaceClick} isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches} foldProgress={foldProgress} diceStyle={diceStyle} linePalette={linePalette} />
           </div>
         );
       })}
@@ -331,6 +336,11 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   const gridBackgroundPosition = canvasSize && canvasSize.width > 0 && canvasSize.height > 0
     ? `${Math.round(canvasSize.width / 2 + gridOffset.x - gridLineOffset)}px ${Math.round(canvasSize.height / 2 + gridOffset.y - gridLineOffset)}px`
     : `calc(50% + ${gridOffset.x - gridLineOffset}px) calc(50% + ${gridOffset.y - gridLineOffset}px)`;
+  const linePalette = {
+    solid: lineColor ?? '#000000',
+    fold: foldLineColor ?? (lineColor ?? '#000000'),
+    muted: mutedLineColor ?? '#bbbbbb'
+  };
 
   return (
     <div
@@ -371,6 +381,7 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
                   isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches}
                   foldProgress={foldProgress}
                   diceStyle={diceStyle}
+                  linePalette={linePalette}
                 />
                </div>
              )}
@@ -379,8 +390,3 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     </div>
   );
 };
-  const linePalette = {
-    solid: lineColor ?? '#000000',
-    fold: foldLineColor ?? (lineColor ?? '#000000'),
-    muted: mutedLineColor ?? '#bbbbbb'
-  };

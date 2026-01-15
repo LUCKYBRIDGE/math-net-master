@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Direction, Face, NetData } from '../types';
 import { getNetAlignment } from '../utils/netAlignment';
+import { NetCanvas } from './NetCanvas';
 
 type EdgeKind = 'solid' | 'fold';
 type Side = 'left' | 'right';
@@ -328,6 +329,7 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
   const gridBackgroundPosition = canvasSize.width > 0 && canvasSize.height > 0
     ? `${Math.round(canvasSize.width / 2 - gridLineOffset)}px ${Math.round(canvasSize.height / 2 - gridLineOffset)}px`
     : `calc(50% - ${gridLineOffset}px) calc(50% - ${gridLineOffset}px)`;
+  const showOverlapLines = leftFoldProgress === 0 && rightFoldProgress === 0;
 
   return (
     <div
@@ -356,17 +358,56 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
         />
       )}
 
-      <svg
-        className="absolute inset-0 h-full w-full pointer-events-none"
-        width={canvasSize.width || 0}
-        height={canvasSize.height || 0}
-        viewBox={`0 0 ${canvasSize.width || 0} ${canvasSize.height || 0}`}
-        preserveAspectRatio="none"
-      >
-        {renderEdges(leftOnlyEdges, '#ef4444', leftFoldProgress)}
-        {renderEdges(rightOnlyEdges, '#3b82f6', rightFoldProgress)}
-        {renderEdges(overlapEdges, '#a855f7', Math.max(leftFoldProgress, rightFoldProgress))}
-      </svg>
+      {showOverlapLines ? (
+        <svg
+          className="absolute inset-0 h-full w-full pointer-events-none"
+          width={canvasSize.width || 0}
+          height={canvasSize.height || 0}
+          viewBox={`0 0 ${canvasSize.width || 0} ${canvasSize.height || 0}`}
+          preserveAspectRatio="none"
+        >
+          {renderEdges(leftOnlyEdges, '#ef4444', leftFoldProgress)}
+          {renderEdges(rightOnlyEdges, '#3b82f6', rightFoldProgress)}
+          {renderEdges(overlapEdges, '#a855f7', Math.max(leftFoldProgress, rightFoldProgress))}
+        </svg>
+      ) : (
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0">
+            <NetCanvas
+              net={leftNet}
+              scale={scale}
+              interactive={false}
+              foldProgress={leftFoldProgress}
+              transparency={1}
+              rotation={{ x: 0, y: 0 }}
+              panOffset={leftPan}
+              showGrid={false}
+              canvasSize={canvasSize}
+              lineColor="#ef4444"
+              foldLineColor="#ef4444"
+              mutedLineColor="#fca5a5"
+              transparentBackground={true}
+            />
+          </div>
+          <div className="absolute inset-0">
+            <NetCanvas
+              net={rightNet}
+              scale={scale}
+              interactive={false}
+              foldProgress={rightFoldProgress}
+              transparency={1}
+              rotation={{ x: 0, y: 0 }}
+              panOffset={rightPan}
+              showGrid={false}
+              canvasSize={canvasSize}
+              lineColor="#3b82f6"
+              foldLineColor="#3b82f6"
+              mutedLineColor="#93c5fd"
+              transparentBackground={true}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

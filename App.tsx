@@ -457,7 +457,8 @@ const App: React.FC = () => {
     }
   };
 
-  const compareFoldCommon = Math.round((compareFoldLeft + compareFoldRight) / 2);
+  const compareFoldSynced = compareFoldLeft === compareFoldRight;
+  const compareFoldCommon = compareFoldSynced ? compareFoldLeft : 0;
 
   useEffect(() => {
     if (!isComparePanelDragging) return;
@@ -818,14 +819,17 @@ const App: React.FC = () => {
                               min="0"
                               max="100"
                               value={compareFoldCommon}
+                              disabled={!compareFoldSynced}
                               onChange={e => {
                                 const next = Number(e.target.value);
                                 setCompareFoldLeft(next);
                                 setCompareFoldRight(next);
                               }}
-                              className="h-1.5 w-28 rounded-lg bg-slate-100 accent-blue-600"
+                              className={`h-1.5 w-28 rounded-lg bg-slate-100 accent-blue-600 ${compareFoldSynced ? '' : 'opacity-40'}`}
                             />
-                            <span className="min-w-[32px] text-right text-[9px] text-slate-500">{compareFoldCommon}%</span>
+                            <span className="min-w-[40px] text-right text-[9px] text-slate-500">
+                              {compareFoldSynced ? `${compareFoldCommon}%` : '개별'}
+                            </span>
                           </div>
                           <button
                             onClick={() => {

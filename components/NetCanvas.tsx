@@ -14,6 +14,10 @@ interface NetCanvasProps {
   rotation?: { x: number; y: number };
   panOffset?: { x: number; y: number };
   canvasSize?: { width: number; height: number };
+  lineColor?: string;
+  foldLineColor?: string;
+  mutedLineColor?: string;
+  transparentBackground?: boolean;
   isAnimatingRotation?: boolean;
   isRotating?: boolean;
   faceColors?: Record<number, string>;
@@ -48,7 +52,12 @@ const PerspectiveWireframe: React.FC<{
   showEdgeMatches?: boolean;
   scale: number;
   diceStyle?: 'none' | 'number' | 'dot';
-}> = ({ face, isFoldLine, foldProgress, skinType, showEdgeMatches, scale, diceStyle }) => {
+  linePalette: {
+    solid: string;
+    fold: string;
+    muted: string;
+  };
+}> = ({ face, isFoldLine, foldProgress, skinType, showEdgeMatches, scale, diceStyle, linePalette }) => {
   const isInward = skinType === 'inward';
   const isFlat = foldProgress === 0;
   const directions: Direction[] = ['up', 'down', 'left', 'right'];
@@ -128,16 +137,17 @@ const PerspectiveWireframe: React.FC<{
 
         let borderStyle: 'solid' | 'dashed' = 'solid';
         let weight = isFlat ? (2.0 * sw) : (1.0 * sw); 
-        let color = '#000000';
+        let color = linePalette.solid;
 
         if (isFlat) {
           borderStyle = fold ? 'dashed' : 'solid';
           // 테두리는 굵게, 접는 선은 중간 굵기로 표현
           weight = fold ? (1.5 * sw) : (3.5 * sw); 
+          color = fold ? linePalette.fold : linePalette.solid;
         } else {
           borderStyle = isInward ? 'solid' : 'dashed';
           weight = isInward ? (1.2 * sw) : (1.0 * sw); 
-          color = isInward ? '#000000' : '#bbbbbb';
+          color = isInward ? linePalette.solid : linePalette.muted;
         }
 
         if (isMatched) {
@@ -265,8 +275,8 @@ const FoldableFace: React.FC<{
         }}
     >
       <div style={{ position: 'absolute', inset: 0, backgroundColor: bgFill, opacity: faceOpacity, backfaceVisibility: 'visible' }} />
-      <PerspectiveWireframe face={face} isFoldLine={isFoldLine} foldProgress={foldProgress} skinType="inward" showEdgeMatches={showEdgeMatches} scale={scale} diceStyle={diceStyle} />
-      <PerspectiveWireframe face={face} isFoldLine={isFoldLine} foldProgress={foldProgress} skinType="outward" showEdgeMatches={showEdgeMatches} scale={scale} diceStyle={'none'} />
+      <PerspectiveWireframe face={face} isFoldLine={isFoldLine} foldProgress={foldProgress} skinType="inward" showEdgeMatches={showEdgeMatches} scale={scale} diceStyle={diceStyle} linePalette={linePalette} />
+      <PerspectiveWireframe face={face} isFoldLine={isFoldLine} foldProgress={foldProgress} skinType="outward" showEdgeMatches={showEdgeMatches} scale={scale} diceStyle={'none'} linePalette={linePalette} />
       
       {children.map(child => {
         let origin = '', transform = '', pos: React.CSSProperties = {};
@@ -297,6 +307,10 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     transparency = 0.2, activeParallelPairs, showGrid = true, 
     rotation = { x: 0, y: 0 }, panOffset = { x: 0, y: 0 },
     canvasSize,
+    lineColor,
+    foldLineColor,
+    mutedLineColor,
+    transparentBackground = false,
     isAnimatingRotation = false,
     isRotating = false, faceColors, onFaceClick, isPaintingMode, showEdgeMatches,
     diceStyle = 'none',
@@ -319,7 +333,10 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     : `calc(50% + ${gridOffset.x - gridLineOffset}px) calc(50% + ${gridOffset.y - gridLineOffset}px)`;
 
   return (
-    <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-white" style={{ perspective: '6000px' }}>
+    <div
+      className={`w-full h-full relative flex items-center justify-center overflow-hidden ${transparentBackground ? 'bg-transparent' : 'bg-white'}`}
+      style={{ perspective: '6000px' }}
+    >
       
       {showGrid && (
         <div 
@@ -362,3 +379,8 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     </div>
   );
 };
+  const linePalette = {
+    solid: lineColor ?? '#000000',
+    fold: foldLineColor ?? (lineColor ?? '#000000'),
+    muted: mutedLineColor ?? '#bbbbbb'
+  };

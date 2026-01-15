@@ -109,15 +109,13 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!layoutRef.current || !controlRef.current) return;
     if (!hasMovedManually) {
-      const layoutWidth = layoutRef.current.offsetWidth;
-      const controlWidth = panelSize.width;
-      const maxX = Math.max(0, layoutWidth - controlWidth - 24);
-      const sidebarWidth = isSidebarOpen ? 320 : 0;
-      const sidebarMaxX = sidebarWidth > 0 ? Math.max(0, sidebarWidth - controlWidth - 24) : maxX;
-      const x = Math.max(0, Math.min(24, Math.min(maxX, sidebarMaxX)));
-      setControlPos({ x, y: 24 });
+      const layoutRect = layoutRef.current.getBoundingClientRect();
+      const topOffset = layoutRect.top;
+      const x = 24;
+      const y = topOffset + 24;
+      setControlPos({ x, y });
     }
-  }, [workspaceSize, hasMovedManually, isSidebarOpen, panelSize.width]);
+  }, [workspaceSize, hasMovedManually]);
 
   useEffect(() => {
     controlPosRef.current = controlPos;
@@ -136,7 +134,7 @@ const App: React.FC = () => {
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('.header-slider') || target.closest('.toggle-btn') || target.closest('input') || target.closest('.palette-btn') || target.closest('.action-btn') || target.closest('.panel-resize-handle')) return;
-    if (!controlRef.current || !layoutRef.current || isResizing) return;
+    if (!controlRef.current || isResizing) return;
     setIsDragging(true);
     setHasMovedManually(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
@@ -146,7 +144,7 @@ const App: React.FC = () => {
   };
 
   const handleResizeStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!controlRef.current || !layoutRef.current) return;
+    if (!controlRef.current) return;
     e.preventDefault();
     e.stopPropagation();
     setIsResizing(true);
@@ -281,25 +279,27 @@ const App: React.FC = () => {
       const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
       const clientY = 'touches' in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
 
-      if (isResizing && layoutRef.current) {
-        const layoutRect = layoutRef.current.getBoundingClientRect();
+      if (isResizing) {
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = document.documentElement.clientHeight;
         const minWidth = 220;
         const minHeight = 220;
-        const maxWidth = Math.max(minWidth, layoutRect.width - controlPosRef.current.x - 16);
-        const maxHeight = Math.max(minHeight, layoutRect.height - controlPosRef.current.y - 16);
+        const maxWidth = Math.max(minWidth, viewportWidth - controlPosRef.current.x - 16);
+        const maxHeight = Math.max(minHeight, viewportHeight - controlPosRef.current.y - 16);
         const nextWidth = Math.max(minWidth, Math.min(maxWidth, resizeStart.current.width + (clientX - resizeStart.current.x)));
         const nextHeight = Math.max(minHeight, Math.min(maxHeight, resizeStart.current.height + (clientY - resizeStart.current.y)));
         setPanelSize({ width: nextWidth, height: nextHeight });
         return;
       }
 
-      if (isDragging && layoutRef.current && controlRef.current) {
-        const layoutRect = layoutRef.current.getBoundingClientRect();
+      if (isDragging && controlRef.current) {
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = document.documentElement.clientHeight;
         const ctrlRect = controlRef.current.getBoundingClientRect();
-        let newX = clientX - layoutRect.left - dragOffset.current.x;
-        let newY = clientY - layoutRect.top - dragOffset.current.y;
-        newX = Math.max(0, Math.min(newX, layoutRect.width - ctrlRect.width));
-        newY = Math.max(0, Math.min(newY, layoutRect.height - ctrlRect.height));
+        let newX = clientX - dragOffset.current.x;
+        let newY = clientY - dragOffset.current.y;
+        newX = Math.max(0, Math.min(newX, viewportWidth - ctrlRect.width));
+        newY = Math.max(0, Math.min(newY, viewportHeight - ctrlRect.height));
         applyDragPosition({ x: newX, y: newY });
       }
 
@@ -611,7 +611,7 @@ const App: React.FC = () => {
               minHeight: isPanelCollapsed ? 0 : 220,
               transform: `translate3d(${controlPos.x}px, ${controlPos.y}px, 0)`
             }}
-            className={`tool-panel absolute z-[60] flex flex-col rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 ${isDragging || isResizing ? '' : 'transition-all duration-300'}`}>
+            className={`tool-panel fixed z-[60] flex flex-col rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 ${isDragging || isResizing ? '' : 'transition-all duration-300'}`}>
             <div onMouseDown={handleDragStart} onTouchStart={handleDragStart} className="px-3 py-3 border-b flex items-center justify-between cursor-grab active:cursor-grabbing bg-slate-50/80">
                 <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">수업 도구</span>
                 <button onClick={() => setIsPanelCollapsed(!isPanelCollapsed)} className="p-1.5 rounded-lg hover:bg-slate-200">

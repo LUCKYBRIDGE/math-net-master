@@ -40,6 +40,7 @@ const App: React.FC = () => {
   const [animDuration, setAnimDuration] = useState(1.5); 
   const lastScaleRef = useRef<number | null>(null);
   const compareScaleRef = useRef<number | null>(null);
+  const compareZoomInitialized = useRef(false);
   const [compareLeftDims, setCompareLeftDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [compareRightDims, setCompareRightDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [compareLeftNet, setCompareLeftNet] = useState<NetData | null>(null);
@@ -439,6 +440,7 @@ const App: React.FC = () => {
     setZoomLevel(prev => Math.max(0.1, Math.min(5.0, Math.round((prev + delta) * 10) / 10)));
   };
   const adjustCompareZoom = (delta: number) => {
+    compareZoomInitialized.current = true;
     setCompareZoomLevel(prev => Math.max(0.1, Math.min(5.0, Math.round((prev + delta) * 10) / 10)));
   };
   const snapToGrid = (value: number, grid: number) => Math.round(value / grid) * grid;
@@ -459,6 +461,34 @@ const App: React.FC = () => {
 
   const compareFoldSynced = compareFoldLeft === compareFoldRight;
   const compareFoldCommon = compareFoldSynced ? compareFoldLeft : 0;
+
+  useEffect(() => {
+    if (activeTab !== 'compare') {
+      compareZoomInitialized.current = false;
+      return;
+    }
+    if (compareZoomInitialized.current) return;
+    if (!compareLeftNet || !compareRightNet) return;
+    if (compareWorkspaceSize.width === 0 || compareWorkspaceSize.height === 0) return;
+    const gapUnits = 4;
+    const totalWidth = compareLeftNet.totalWidth + compareRightNet.totalWidth + gapUnits;
+    const totalHeight = Math.max(compareLeftNet.totalHeight, compareRightNet.totalHeight);
+    const padding = 120;
+    const availW = Math.max(compareWorkspaceSize.width - padding, 100);
+    const availH = Math.max(compareWorkspaceSize.height - padding, 100);
+    const fitScale = Math.min(availW / Math.max(totalWidth, 1), availH / Math.max(totalHeight, 1));
+    const baseScale = 40;
+    const nextZoom = Math.max(0.1, Math.min(5.0, Math.round((fitScale / baseScale) * 10) / 10));
+    setCompareZoomLevel(nextZoom);
+    comparePanInitialized.current = false;
+    compareZoomInitialized.current = true;
+  }, [activeTab, compareLeftNet, compareRightNet, compareWorkspaceSize.width, compareWorkspaceSize.height]);
+
+  useEffect(() => {
+    if (activeTab !== 'compare') return;
+    compareZoomInitialized.current = false;
+    comparePanInitialized.current = false;
+  }, [activeTab, compareLeftNet?.id, compareRightNet?.id]);
 
   useEffect(() => {
     if (!isComparePanelDragging) return;
@@ -833,6 +863,8 @@ const App: React.FC = () => {
                           </div>
                           <button
                             onClick={() => {
+                              compareZoomInitialized.current = false;
+                              comparePanInitialized.current = false;
                               setCompareZoomLevel(1.0);
                               setComparePanLeft({ x: 0, y: 0 });
                               setComparePanRight({ x: 0, y: 0 });

@@ -905,10 +905,9 @@ const App: React.FC = () => {
                               </button>
                             </div>
                           </div>
-                          {!comparePanelCollapsed.left && (
-                            <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
-                              <div className="space-y-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                          <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                            <div className="space-y-2">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                               <select
                                 className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
                                 value={compareLeftNet.id}
@@ -923,33 +922,40 @@ const App: React.FC = () => {
                                   </option>
                                 ))}
                               </select>
+                              {!comparePanelCollapsed.left && compareLeftNet && (
+                                <div className="mt-2 h-24 rounded-lg border border-slate-100 bg-slate-50/70 p-2">
+                                  <NetCanvas net={compareLeftNet} scale={20} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#ef4444" foldLineColor="#ef4444" mutedLineColor="#fca5a5" />
+                                </div>
+                              )}
                             </div>
-                            <div className="space-y-3 pt-2 border-t border-slate-100">
-                              <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
-                              <div className="grid grid-cols-3 gap-2">
-                                {([
-                                  { key: 'l', label: '가로' },
-                                  { key: 'w', label: '세로' },
-                                  { key: 'h', label: '높이' }
-                                ] as const).map(({ key, label }) => (
-                                  <div key={key} className="space-y-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
-                                    <div className="flex items-center rounded-xl bg-slate-100 p-1">
-                                      <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
-                                      <input
-                                        type="number"
-                                        min={1}
-                                        max={10}
-                                        value={compareLeftDims[key]}
-                                        onChange={e => updateCompareDim('left', key, Number(e.target.value))}
-                                        className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
-                                      />
-                                      <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
+                            {!comparePanelCollapsed.left && (
+                              <div className="space-y-3 pt-2 border-t border-slate-100">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {([
+                                    { key: 'l', label: '가로' },
+                                    { key: 'w', label: '세로' },
+                                    { key: 'h', label: '높이' }
+                                  ] as const).map(({ key, label }) => (
+                                    <div key={key} className="space-y-2">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
+                                      <div className="flex items-center rounded-xl bg-slate-100 p-1">
+                                        <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          max={10}
+                                          value={compareLeftDims[key]}
+                                          onChange={e => updateCompareDim('left', key, Number(e.target.value))}
+                                          className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
+                                        />
+                                        <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  ))}
+                                </div>
                               </div>
-                            </div>
+                            )}
                             <div className="space-y-2 pt-2 border-t border-slate-100">
                               <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
                               <input
@@ -962,8 +968,7 @@ const App: React.FC = () => {
                               />
                               <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldLeft}%</div>
                             </div>
-                            </div>
-                          )}
+                          </div>
                         </div>
                       )}
 
@@ -995,10 +1000,9 @@ const App: React.FC = () => {
                               </button>
                             </div>
                           </div>
-                          {!comparePanelCollapsed.right && (
-                            <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
-                              <div className="space-y-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                          <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                            <div className="space-y-2">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                               <select
                                 className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
                                 value={compareRightNet.id}
@@ -1013,33 +1017,40 @@ const App: React.FC = () => {
                                   </option>
                                 ))}
                               </select>
+                              {!comparePanelCollapsed.right && compareRightNet && (
+                                <div className="mt-2 h-24 rounded-lg border border-slate-100 bg-slate-50/70 p-2">
+                                  <NetCanvas net={compareRightNet} scale={20} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#3b82f6" foldLineColor="#3b82f6" mutedLineColor="#93c5fd" />
+                                </div>
+                              )}
                             </div>
-                            <div className="space-y-3 pt-2 border-t border-slate-100">
-                              <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
-                              <div className="grid grid-cols-3 gap-2">
-                                {([
-                                  { key: 'l', label: '가로' },
-                                  { key: 'w', label: '세로' },
-                                  { key: 'h', label: '높이' }
-                                ] as const).map(({ key, label }) => (
-                                  <div key={key} className="space-y-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
-                                    <div className="flex items-center rounded-xl bg-slate-100 p-1">
-                                      <button onClick={() => updateCompareDim('right', key, compareRightDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
-                                      <input
-                                        type="number"
-                                        min={1}
-                                        max={10}
-                                        value={compareRightDims[key]}
-                                        onChange={e => updateCompareDim('right', key, Number(e.target.value))}
-                                        className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
-                                      />
-                                      <button onClick={() => updateCompareDim('right', key, compareRightDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
+                            {!comparePanelCollapsed.right && (
+                              <div className="space-y-3 pt-2 border-t border-slate-100">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {([
+                                    { key: 'l', label: '가로' },
+                                    { key: 'w', label: '세로' },
+                                    { key: 'h', label: '높이' }
+                                  ] as const).map(({ key, label }) => (
+                                    <div key={key} className="space-y-2">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
+                                      <div className="flex items-center rounded-xl bg-slate-100 p-1">
+                                        <button onClick={() => updateCompareDim('right', key, compareRightDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          max={10}
+                                          value={compareRightDims[key]}
+                                          onChange={e => updateCompareDim('right', key, Number(e.target.value))}
+                                          className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
+                                        />
+                                        <button onClick={() => updateCompareDim('right', key, compareRightDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  ))}
+                                </div>
                               </div>
-                            </div>
+                            )}
                             <div className="space-y-2 pt-2 border-t border-slate-100">
                               <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
                               <input
@@ -1052,8 +1063,7 @@ const App: React.FC = () => {
                               />
                               <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldRight}%</div>
                             </div>
-                            </div>
-                          )}
+                          </div>
                         </div>
                       )}
                   </div>

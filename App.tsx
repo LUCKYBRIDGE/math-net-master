@@ -553,8 +553,10 @@ const App: React.FC = () => {
     );
   };
 
-  const getComparePreviewScale = (net: NetData, maxWidth = 140, maxHeight = 70, cap = 22) =>
-    Math.min(maxWidth / Math.max(net.totalWidth, 1), maxHeight / Math.max(net.totalHeight, 1), cap);
+  const getComparePreviewScale = (net: NetData, maxWidth = 120, maxHeight = 60, cap = 18) => {
+    const raw = Math.min(maxWidth / Math.max(net.totalWidth, 1), maxHeight / Math.max(net.totalHeight, 1), cap);
+    return Math.max(4, Math.floor(raw * 0.9));
+  };
 
   const foldSliderOnly = (
     <div className="space-y-2">

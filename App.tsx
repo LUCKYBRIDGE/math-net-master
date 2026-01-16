@@ -553,6 +553,9 @@ const App: React.FC = () => {
     );
   };
 
+  const getComparePreviewScale = (net: NetData, maxWidth = 140, maxHeight = 70, cap = 22) =>
+    Math.min(maxWidth / Math.max(net.totalWidth, 1), maxHeight / Math.max(net.totalHeight, 1), cap);
+
   const foldSliderOnly = (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -923,8 +926,8 @@ const App: React.FC = () => {
                                 ))}
                               </select>
                               {!comparePanelCollapsed.left && compareLeftNet && (
-                                <div className="mt-2 h-24 rounded-lg border border-slate-100 bg-slate-50/70 p-2">
-                                  <NetCanvas net={compareLeftNet} scale={20} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#ef4444" foldLineColor="#ef4444" mutedLineColor="#fca5a5" />
+                                <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
+                                  <NetCanvas net={compareLeftNet} scale={getComparePreviewScale(compareLeftNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#ef4444" foldLineColor="#ef4444" mutedLineColor="#fca5a5" />
                                 </div>
                               )}
                             </div>
@@ -1018,8 +1021,8 @@ const App: React.FC = () => {
                                 ))}
                               </select>
                               {!comparePanelCollapsed.right && compareRightNet && (
-                                <div className="mt-2 h-24 rounded-lg border border-slate-100 bg-slate-50/70 p-2">
-                                  <NetCanvas net={compareRightNet} scale={20} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#3b82f6" foldLineColor="#3b82f6" mutedLineColor="#93c5fd" />
+                                <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
+                                  <NetCanvas net={compareRightNet} scale={getComparePreviewScale(compareRightNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#3b82f6" foldLineColor="#3b82f6" mutedLineColor="#93c5fd" />
                                 </div>
                               )}
                             </div>

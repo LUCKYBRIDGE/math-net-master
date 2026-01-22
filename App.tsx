@@ -910,7 +910,7 @@ const App: React.FC = () => {
                               </button>
                             </div>
                           </div>
-                          <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                          <div className={`panel-scroll ${comparePanelCollapsed.left ? 'max-h-[240px] space-y-3 p-2' : 'max-h-[70vh] space-y-4 p-3'}`}>
                             <div className="space-y-2">
                               <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                               <select
@@ -1005,7 +1005,7 @@ const App: React.FC = () => {
                               </button>
                             </div>
                           </div>
-                          <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                          <div className={`panel-scroll ${comparePanelCollapsed.right ? 'max-h-[240px] space-y-3 p-2' : 'max-h-[70vh] space-y-4 p-3'}`}>
                             <div className="space-y-2">
                               <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                               <select

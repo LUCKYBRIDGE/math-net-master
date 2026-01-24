@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Dimensions, NetData } from './types';
 import { generateAllNets } from './utils/netGenerator';
 import { NetCanvas } from './components/NetCanvas';
@@ -697,6 +698,72 @@ const App: React.FC = () => {
     </div>
   );
 
+  const commonPanel = (
+    <div
+      ref={compareHeaderRef}
+      style={{ left: 0, top: 0, transform: `translate3d(${compareHeaderPos.x}px, ${compareHeaderPos.y}px, 0)` }}
+      className="fixed z-[9999] rounded-2xl border border-slate-200 bg-white/95 shadow-xl touch-none cursor-grab active:cursor-grabbing select-none pointer-events-auto"
+    >
+      <div className="flex cursor-grab items-center justify-between gap-2 border-b px-3 py-2 text-[10px] font-black text-slate-500 active:cursor-grabbing">
+        <span>공통 제어</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setCompareHeaderCollapsed(prev => !prev);
+          }}
+          className="rounded-md p-1 hover:bg-slate-100"
+          aria-label="공통 패널 접기/펼치기"
+        >
+          <svg className={`h-4 w-4 transition-transform ${compareHeaderCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+      <div className={`${compareHeaderCollapsed ? 'px-2 py-2' : 'p-3'} text-[10px] font-black`}>
+        {compareHeaderCollapsed ? (
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] uppercase text-slate-400">배율</span>
+            <button onClick={() => adjustCompareZoom(-0.1)} className="w-6 h-6 rounded-lg bg-slate-100">-</button>
+            <span className="min-w-[40px] text-center text-[9px]">{Math.round(compareZoomLevel * 100)}%</span>
+            <button onClick={() => adjustCompareZoom(0.1)} className="w-6 h-6 rounded-lg bg-slate-100">+</button>
+            <button onClick={resetCompareView} className="ml-auto rounded-md bg-slate-800 px-2 py-1 text-[9px] text-white">초기화</button>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="uppercase text-slate-400">공통 배율</span>
+              <button onClick={() => adjustCompareZoom(-0.1)} className="w-7 h-7 rounded-lg bg-slate-100">-</button>
+              <span className="min-w-[48px] text-center">{Math.round(compareZoomLevel * 100)}%</span>
+              <button onClick={() => adjustCompareZoom(0.1)} className="w-7 h-7 rounded-lg bg-slate-100">+</button>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="uppercase text-slate-400">공통 접기</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={compareFoldCommon}
+                disabled={!compareFoldSynced}
+                onChange={e => {
+                  const next = Number(e.target.value);
+                  setCompareFoldLeft(next);
+                  setCompareFoldRight(next);
+                }}
+                className={`h-1.5 w-28 rounded-lg bg-slate-100 accent-blue-600 ${compareFoldSynced ? '' : 'opacity-40'}`}
+              />
+              <span className="min-w-[40px] text-right text-[9px] text-slate-500">
+                {compareFoldSynced ? `${compareFoldCommon}%` : '개별'}
+              </span>
+            </div>
+            <button onClick={resetCompareView} className="mt-3 rounded-lg bg-slate-800 px-3 py-1 text-white">
+              초기화
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className={`flex flex-col h-screen overflow-hidden font-sans select-none transition-all duration-700 ${isClassroomMode ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
       <header className={`flex-none border-b px-4 py-3 shadow-sm z-40 flex items-center justify-between transition-all duration-500 ${isClassroomMode ? 'bg-black/40 backdrop-blur-md border-white/5' : 'bg-white border-slate-200'}`}>
@@ -946,71 +1013,7 @@ const App: React.FC = () => {
                         )}
                       </div>
 
-                      <div
-                        ref={compareHeaderRef}
-                        style={{ left: 0, top: 0, transform: `translate3d(${compareHeaderPos.x}px, ${compareHeaderPos.y}px, 0)` }}
-                        className="fixed z-[120] rounded-2xl border border-slate-200 bg-white/95 shadow-xl touch-none cursor-grab active:cursor-grabbing select-none pointer-events-auto"
-                      >
-                        <div
-                          className="flex cursor-grab items-center justify-between gap-2 border-b px-3 py-2 text-[10px] font-black text-slate-500 active:cursor-grabbing"
-                        >
-                          <span>공통 제어</span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCompareHeaderCollapsed(prev => !prev);
-                            }}
-                            className="rounded-md p-1 hover:bg-slate-100"
-                            aria-label="공통 패널 접기/펼치기"
-                          >
-                            <svg className={`h-4 w-4 transition-transform ${compareHeaderCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-                        </div>
-                        <div className={`${compareHeaderCollapsed ? 'px-2 py-2' : 'p-3'} text-[10px] font-black`}>
-                          {compareHeaderCollapsed ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9px] uppercase text-slate-400">배율</span>
-                              <button onClick={() => adjustCompareZoom(-0.1)} className="w-6 h-6 rounded-lg bg-slate-100">-</button>
-                              <span className="min-w-[40px] text-center text-[9px]">{Math.round(compareZoomLevel * 100)}%</span>
-                              <button onClick={() => adjustCompareZoom(0.1)} className="w-6 h-6 rounded-lg bg-slate-100">+</button>
-                              <button onClick={resetCompareView} className="ml-auto rounded-md bg-slate-800 px-2 py-1 text-[9px] text-white">초기화</button>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="flex flex-wrap items-center gap-3">
-                                <span className="uppercase text-slate-400">공통 배율</span>
-                                <button onClick={() => adjustCompareZoom(-0.1)} className="w-7 h-7 rounded-lg bg-slate-100">-</button>
-                                <span className="min-w-[48px] text-center">{Math.round(compareZoomLevel * 100)}%</span>
-                                <button onClick={() => adjustCompareZoom(0.1)} className="w-7 h-7 rounded-lg bg-slate-100">+</button>
-                              </div>
-                              <div className="mt-3 flex items-center gap-2">
-                                <span className="uppercase text-slate-400">공통 접기</span>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  value={compareFoldCommon}
-                                  disabled={!compareFoldSynced}
-                                  onChange={e => {
-                                    const next = Number(e.target.value);
-                                    setCompareFoldLeft(next);
-                                    setCompareFoldRight(next);
-                                  }}
-                                  className={`h-1.5 w-28 rounded-lg bg-slate-100 accent-blue-600 ${compareFoldSynced ? '' : 'opacity-40'}`}
-                                />
-                                <span className="min-w-[40px] text-right text-[9px] text-slate-500">
-                                  {compareFoldSynced ? `${compareFoldCommon}%` : '개별'}
-                                </span>
-                              </div>
-                              <button onClick={resetCompareView} className="mt-3 rounded-lg bg-slate-800 px-3 py-1 text-white">
-                                초기화
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      {typeof document !== 'undefined' ? createPortal(commonPanel, document.body) : commonPanel}
 
                       {compareLeftNet && (
                         <div

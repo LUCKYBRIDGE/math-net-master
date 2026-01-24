@@ -56,7 +56,12 @@ const App: React.FC = () => {
     right: { x: 24, y: 24 }
   });
   const [comparePanelCollapsed, setComparePanelCollapsed] = useState({ left: false, right: false });
-  const [isComparePanelDragging, setIsComparePanelDragging] = useState<'left' | 'right' | null>(null);
+  const [compareHeaderCollapsed, setCompareHeaderCollapsed] = useState(false);
+  const [compareHeaderPos, setCompareHeaderPos] = useState({ x: 0, y: 0 });
+  const compareHeaderRef = useRef<HTMLDivElement>(null);
+  const compareHeaderDragOffset = useRef({ x: 0, y: 0 });
+  const compareHeaderMoved = useRef(false);
+  const [isComparePanelDragging, setIsComparePanelDragging] = useState<'left' | 'right' | 'common' | null>(null);
   const comparePanelPosRef = useRef({ left: { x: 24, y: 24 }, right: { x: 24, y: 24 } });
   const comparePanelDragOffset = useRef({ x: 0, y: 0 });
   const comparePanelMoved = useRef({ left: false, right: false });
@@ -184,20 +189,61 @@ const App: React.FC = () => {
         right: { x: rightX, y: 24 }
       }));
     }
+    if (!compareHeaderMoved.current && compareHeaderRef.current) {
+      const headerRect = compareHeaderRef.current.getBoundingClientRect();
+      const headerX = Math.max(24, (layoutRect.width - headerRect.width) / 2);
+      setCompareHeaderPos({ x: headerX, y: layoutRect.top + 16 });
+    }
   }, [activeTab, compareWorkspaceSize.width, compareWorkspaceSize.height]);
 
+  const startCommonPanelDrag = (clientX: number, clientY: number) => {
+    const panel = compareHeaderRef.current;
+    if (!panel) return;
+    const rect = panel.getBoundingClientRect();
+    compareHeaderDragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
+    compareHeaderMoved.current = true;
+    setIsComparePanelDragging('common');
+  };
+
   const handleComparePanelDragStart = (
-    side: 'left' | 'right',
+    side: 'left' | 'right' | 'common',
     e: React.MouseEvent | React.TouchEvent
   ) => {
-    const panel = side === 'left' ? compareLeftPanelRef.current : compareRightPanelRef.current;
+    if (side !== 'common') {
+      setCompareActiveSide(side);
+    }
+    const panel =
+      side === 'left'
+        ? compareLeftPanelRef.current
+        : side === 'right'
+          ? compareRightPanelRef.current
+          : compareHeaderRef.current;
     if (!panel) return;
+    const target = e.target as HTMLElement | null;
+    if (side === 'common' && target?.closest('input[type="range"]')) return;
+    if ('touches' in e) {
+      e.preventDefault();
+    }
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     const rect = panel.getBoundingClientRect();
-    comparePanelDragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
-    comparePanelMoved.current[side] = true;
-    setIsComparePanelDragging(side);
+    if (side === 'common') {
+      startCommonPanelDrag(clientX, clientY);
+    } else {
+      comparePanelDragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
+      comparePanelMoved.current[side] = true;
+      setIsComparePanelDragging(side);
+    }
+  };
+
+  const resetCompareView = () => {
+    compareZoomInitialized.current = false;
+    comparePanInitialized.current = false;
+    setCompareZoomLevel(1.0);
+    setComparePanLeft({ x: 0, y: 0 });
+    setComparePanRight({ x: 0, y: 0 });
+    setCompareFoldLeft(0);
+    setCompareFoldRight(0);
   };
 
   const computedScale = useMemo(() => {
@@ -494,13 +540,28 @@ const App: React.FC = () => {
     if (!isComparePanelDragging) return;
 
     const handleMove = (event: MouseEvent | TouchEvent) => {
-      const panel = isComparePanelDragging === 'left' ? compareLeftPanelRef.current : compareRightPanelRef.current;
-      if (!panel) return;
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
-      const panelRect = panel.getBoundingClientRect();
       const viewportWidth = document.documentElement.clientWidth;
       const viewportHeight = document.documentElement.clientHeight;
+
+      if (isComparePanelDragging === 'common') {
+        const panel = compareHeaderRef.current;
+        if (!panel) {
+          return;
+        }
+        const panelRect = panel.getBoundingClientRect();
+        let nextX = clientX - compareHeaderDragOffset.current.x;
+        let nextY = clientY - compareHeaderDragOffset.current.y;
+        nextX = Math.max(0, Math.min(nextX, viewportWidth - panelRect.width));
+        nextY = Math.max(0, Math.min(nextY, viewportHeight - panelRect.height));
+        setCompareHeaderPos({ x: nextX, y: nextY });
+        return;
+      }
+
+      const panel = isComparePanelDragging === 'left' ? compareLeftPanelRef.current : compareRightPanelRef.current;
+      if (!panel) return;
+      const panelRect = panel.getBoundingClientRect();
       let nextX = clientX - comparePanelDragOffset.current.x;
       let nextY = clientY - comparePanelDragOffset.current.y;
       nextX = Math.max(0, Math.min(nextX, viewportWidth - panelRect.width));
@@ -526,6 +587,49 @@ const App: React.FC = () => {
       window.removeEventListener('touchend', handleEnd);
     };
   }, [isComparePanelDragging]);
+
+  const logCompareCommon = (...args: unknown[]) => {
+    if (typeof window === 'undefined') return;
+    console.log('[compare-common-panel]', ...args);
+  };
+
+  useEffect(() => {
+    const handleStart = (event: MouseEvent | TouchEvent) => {
+      if (activeTab !== 'compare') return;
+      const panel = compareHeaderRef.current;
+      if (!panel) {
+        logCompareCommon('start:panel-missing');
+        return;
+      }
+      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+      const rect = panel.getBoundingClientRect();
+      if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+        logCompareCommon('start:outside', { clientX, clientY }, rect);
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input[type="range"]')) {
+        logCompareCommon('start:skip-range');
+        return;
+      }
+      logCompareCommon('start', { clientX, clientY }, rect);
+      startCommonPanelDrag(clientX, clientY);
+      if ('touches' in event) {
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('mousedown', handleStart, true);
+    window.addEventListener('touchstart', handleStart, { passive: false, capture: true });
+    logCompareCommon('listener-attached');
+    return () => {
+      window.removeEventListener('mousedown', handleStart, true);
+      window.removeEventListener('touchstart', handleStart, true);
+    };
+  }, [activeTab]);
+
+  // common panel drag handled in compare panel drag effect
 
   const stepFold = (delta: number) => {
     setFoldProgress(prev => Math.max(0, Math.min(100, prev + delta)));
@@ -842,60 +946,90 @@ const App: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center gap-3 rounded-2xl bg-white/90 px-4 py-2 text-[10px] font-black shadow">
-                          <span className="uppercase text-slate-400">공통 배율</span>
-                          <button onClick={() => adjustCompareZoom(-0.1)} className="w-7 h-7 rounded-lg bg-slate-100">-</button>
-                          <span className="min-w-[48px] text-center">{Math.round(compareZoomLevel * 100)}%</span>
-                          <button onClick={() => adjustCompareZoom(0.1)} className="w-7 h-7 rounded-lg bg-slate-100">+</button>
-                          <div className="flex items-center gap-2">
-                            <span className="uppercase text-slate-400">공통 접기</span>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={compareFoldCommon}
-                              disabled={!compareFoldSynced}
-                              onChange={e => {
-                                const next = Number(e.target.value);
-                                setCompareFoldLeft(next);
-                                setCompareFoldRight(next);
-                              }}
-                              className={`h-1.5 w-28 rounded-lg bg-slate-100 accent-blue-600 ${compareFoldSynced ? '' : 'opacity-40'}`}
-                            />
-                            <span className="min-w-[40px] text-right text-[9px] text-slate-500">
-                              {compareFoldSynced ? `${compareFoldCommon}%` : '개별'}
-                            </span>
-                          </div>
+                      <div
+                        ref={compareHeaderRef}
+                        style={{ left: 0, top: 0, transform: `translate3d(${compareHeaderPos.x}px, ${compareHeaderPos.y}px, 0)` }}
+                        className="fixed z-[120] rounded-2xl border border-slate-200 bg-white/95 shadow-xl touch-none cursor-grab active:cursor-grabbing select-none pointer-events-auto"
+                      >
+                        <div
+                          className="flex cursor-grab items-center justify-between gap-2 border-b px-3 py-2 text-[10px] font-black text-slate-500 active:cursor-grabbing"
+                        >
+                          <span>공통 제어</span>
                           <button
-                            onClick={() => {
-                              compareZoomInitialized.current = false;
-                              comparePanInitialized.current = false;
-                              setCompareZoomLevel(1.0);
-                              setComparePanLeft({ x: 0, y: 0 });
-                              setComparePanRight({ x: 0, y: 0 });
-                              setCompareFoldLeft(0);
-                              setCompareFoldRight(0);
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCompareHeaderCollapsed(prev => !prev);
                             }}
-                            className="rounded-lg bg-slate-800 px-3 py-1 text-white"
+                            className="rounded-md p-1 hover:bg-slate-100"
+                            aria-label="공통 패널 접기/펼치기"
                           >
-                            초기화
+                            <svg className={`h-4 w-4 transition-transform ${compareHeaderCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                            </svg>
                           </button>
+                        </div>
+                        <div className={`${compareHeaderCollapsed ? 'px-2 py-2' : 'p-3'} text-[10px] font-black`}>
+                          {compareHeaderCollapsed ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] uppercase text-slate-400">배율</span>
+                              <button onClick={() => adjustCompareZoom(-0.1)} className="w-6 h-6 rounded-lg bg-slate-100">-</button>
+                              <span className="min-w-[40px] text-center text-[9px]">{Math.round(compareZoomLevel * 100)}%</span>
+                              <button onClick={() => adjustCompareZoom(0.1)} className="w-6 h-6 rounded-lg bg-slate-100">+</button>
+                              <button onClick={resetCompareView} className="ml-auto rounded-md bg-slate-800 px-2 py-1 text-[9px] text-white">초기화</button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex flex-wrap items-center gap-3">
+                                <span className="uppercase text-slate-400">공통 배율</span>
+                                <button onClick={() => adjustCompareZoom(-0.1)} className="w-7 h-7 rounded-lg bg-slate-100">-</button>
+                                <span className="min-w-[48px] text-center">{Math.round(compareZoomLevel * 100)}%</span>
+                                <button onClick={() => adjustCompareZoom(0.1)} className="w-7 h-7 rounded-lg bg-slate-100">+</button>
+                              </div>
+                              <div className="mt-3 flex items-center gap-2">
+                                <span className="uppercase text-slate-400">공통 접기</span>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={compareFoldCommon}
+                                  disabled={!compareFoldSynced}
+                                  onChange={e => {
+                                    const next = Number(e.target.value);
+                                    setCompareFoldLeft(next);
+                                    setCompareFoldRight(next);
+                                  }}
+                                  className={`h-1.5 w-28 rounded-lg bg-slate-100 accent-blue-600 ${compareFoldSynced ? '' : 'opacity-40'}`}
+                                />
+                                <span className="min-w-[40px] text-right text-[9px] text-slate-500">
+                                  {compareFoldSynced ? `${compareFoldCommon}%` : '개별'}
+                                </span>
+                              </div>
+                              <button onClick={resetCompareView} className="mt-3 rounded-lg bg-slate-800 px-3 py-1 text-white">
+                                초기화
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       {compareLeftNet && (
                         <div
                           ref={compareLeftPanelRef}
                           style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.left.x}px, ${comparePanelPos.left.y}px, 0)` }}
-                          className={`fixed z-[70] w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'}`}
+                          className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'} ${comparePanelCollapsed.left ? 'w-[220px] h-[72px] overflow-hidden' : 'w-64'}`}
+                          onMouseDown={() => setCompareActiveSide('left')}
+                          onTouchStart={() => setCompareActiveSide('left')}
                         >
                           <div
                             onMouseDown={(e) => handleComparePanelDragStart('left', e)}
                             onTouchStart={(e) => handleComparePanelDragStart('left', e)}
-                            className="flex cursor-grab items-center justify-between border-b px-3 py-2 active:cursor-grabbing"
+                            className={`flex cursor-grab items-center justify-between border-b active:cursor-grabbing ${comparePanelCollapsed.left ? 'px-2 py-0.5' : 'px-3 py-2'}`}
                           >
-                            <span className="text-[10px] font-black uppercase text-red-500">빨강 전개도</span>
+                            <span className={`${comparePanelCollapsed.left ? 'text-[9px]' : 'text-[10px]'} font-black uppercase text-red-500`}>빨강 전개도</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-[9px] font-bold text-slate-400">좌측</span>
+                              {!comparePanelCollapsed.left && (
+                                <span className="text-[9px] font-bold text-slate-400">좌측</span>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -910,11 +1044,10 @@ const App: React.FC = () => {
                               </button>
                             </div>
                           </div>
-                          <div className={`panel-scroll ${comparePanelCollapsed.left ? 'max-h-[240px] space-y-3 p-2' : 'max-h-[70vh] space-y-4 p-3'}`}>
-                            <div className="space-y-2">
-                              <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                          {comparePanelCollapsed.left ? (
+                            <div className="p-1.5 space-y-1.5">
                               <select
-                                className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
+                                className="w-full rounded-md border border-slate-200 bg-white p-1 text-[9px] font-black"
                                 value={compareLeftNet.id}
                                 onChange={e => {
                                   const next = compareLeftNets.find(net => net.id === e.target.value);
@@ -927,13 +1060,39 @@ const App: React.FC = () => {
                                   </option>
                                 ))}
                               </select>
-                              {!comparePanelCollapsed.left && compareLeftNet && (
-                                <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
-                                  <NetCanvas net={compareLeftNet} scale={getComparePreviewScale(compareLeftNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#ef4444" foldLineColor="#ef4444" mutedLineColor="#fca5a5" />
-                                </div>
-                              )}
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={compareFoldLeft}
+                                onChange={e => setCompareFoldLeft(Number(e.target.value))}
+                                className="h-0.5 w-full rounded-lg bg-slate-100 accent-red-500"
+                              />
                             </div>
-                            {!comparePanelCollapsed.left && (
+                          ) : (
+                            <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                                <select
+                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
+                                  value={compareLeftNet.id}
+                                  onChange={e => {
+                                    const next = compareLeftNets.find(net => net.id === e.target.value);
+                                    if (next) setCompareLeftNet(next);
+                                  }}
+                                >
+                                  {compareLeftNets.map(net => (
+                                    <option key={net.id} value={net.id}>
+                                      유형 {net.patternId}-{net.variantIndex}
+                                    </option>
+                                  ))}
+                                </select>
+                                {compareLeftNet && (
+                                  <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
+                                    <NetCanvas net={compareLeftNet} scale={getComparePreviewScale(compareLeftNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#ef4444" foldLineColor="#ef4444" mutedLineColor="#fca5a5" />
+                                  </div>
+                                )}
+                              </div>
                               <div className="space-y-3 pt-2 border-t border-slate-100">
                                 <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
                                 <div className="grid grid-cols-3 gap-2">
@@ -960,20 +1119,20 @@ const App: React.FC = () => {
                                   ))}
                                 </div>
                               </div>
-                            )}
-                            <div className="space-y-2 pt-2 border-t border-slate-100">
-                              <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={compareFoldLeft}
-                                onChange={e => setCompareFoldLeft(Number(e.target.value))}
-                                className="h-1.5 w-full rounded-lg bg-slate-100 accent-red-500"
-                              />
-                              <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldLeft}%</div>
+                              <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={compareFoldLeft}
+                                  onChange={e => setCompareFoldLeft(Number(e.target.value))}
+                                  className="h-1.5 w-full rounded-lg bg-slate-100 accent-red-500"
+                                />
+                                <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldLeft}%</div>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       )}
 
@@ -981,16 +1140,20 @@ const App: React.FC = () => {
                         <div
                           ref={compareRightPanelRef}
                           style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.right.x}px, ${comparePanelPos.right.y}px, 0)` }}
-                          className={`fixed z-[70] w-64 rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'}`}
+                          className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'} ${comparePanelCollapsed.right ? 'w-[220px] h-[72px] overflow-hidden' : 'w-64'}`}
+                          onMouseDown={() => setCompareActiveSide('right')}
+                          onTouchStart={() => setCompareActiveSide('right')}
                         >
                           <div
                             onMouseDown={(e) => handleComparePanelDragStart('right', e)}
                             onTouchStart={(e) => handleComparePanelDragStart('right', e)}
-                            className="flex cursor-grab items-center justify-between border-b px-3 py-2 active:cursor-grabbing"
+                            className={`flex cursor-grab items-center justify-between border-b active:cursor-grabbing ${comparePanelCollapsed.right ? 'px-2 py-0.5' : 'px-3 py-2'}`}
                           >
-                            <span className="text-[10px] font-black uppercase text-blue-500">파랑 전개도</span>
+                            <span className={`${comparePanelCollapsed.right ? 'text-[9px]' : 'text-[10px]'} font-black uppercase text-blue-500`}>파랑 전개도</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-[9px] font-bold text-slate-400">우측</span>
+                              {!comparePanelCollapsed.right && (
+                                <span className="text-[9px] font-bold text-slate-400">우측</span>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1005,11 +1168,10 @@ const App: React.FC = () => {
                               </button>
                             </div>
                           </div>
-                          <div className={`panel-scroll ${comparePanelCollapsed.right ? 'max-h-[240px] space-y-3 p-2' : 'max-h-[70vh] space-y-4 p-3'}`}>
-                            <div className="space-y-2">
-                              <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                          {comparePanelCollapsed.right ? (
+                            <div className="p-1.5 space-y-1.5">
                               <select
-                                className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
+                                className="w-full rounded-md border border-slate-200 bg-white p-1 text-[9px] font-black"
                                 value={compareRightNet.id}
                                 onChange={e => {
                                   const next = compareRightNets.find(net => net.id === e.target.value);
@@ -1022,13 +1184,39 @@ const App: React.FC = () => {
                                   </option>
                                 ))}
                               </select>
-                              {!comparePanelCollapsed.right && compareRightNet && (
-                                <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
-                                  <NetCanvas net={compareRightNet} scale={getComparePreviewScale(compareRightNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#3b82f6" foldLineColor="#3b82f6" mutedLineColor="#93c5fd" />
-                                </div>
-                              )}
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={compareFoldRight}
+                                onChange={e => setCompareFoldRight(Number(e.target.value))}
+                                className="h-0.5 w-full rounded-lg bg-slate-100 accent-blue-500"
+                              />
                             </div>
-                            {!comparePanelCollapsed.right && (
+                          ) : (
+                            <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                                <select
+                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
+                                  value={compareRightNet.id}
+                                  onChange={e => {
+                                    const next = compareRightNets.find(net => net.id === e.target.value);
+                                    if (next) setCompareRightNet(next);
+                                  }}
+                                >
+                                  {compareRightNets.map(net => (
+                                    <option key={net.id} value={net.id}>
+                                      유형 {net.patternId}-{net.variantIndex}
+                                    </option>
+                                  ))}
+                                </select>
+                                {compareRightNet && (
+                                  <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
+                                    <NetCanvas net={compareRightNet} scale={getComparePreviewScale(compareRightNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#3b82f6" foldLineColor="#3b82f6" mutedLineColor="#93c5fd" />
+                                  </div>
+                                )}
+                              </div>
                               <div className="space-y-3 pt-2 border-t border-slate-100">
                                 <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
                                 <div className="grid grid-cols-3 gap-2">
@@ -1055,20 +1243,20 @@ const App: React.FC = () => {
                                   ))}
                                 </div>
                               </div>
-                            )}
-                            <div className="space-y-2 pt-2 border-t border-slate-100">
-                              <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={compareFoldRight}
-                                onChange={e => setCompareFoldRight(Number(e.target.value))}
-                                className="h-1.5 w-full rounded-lg bg-slate-100 accent-blue-500"
-                              />
-                              <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldRight}%</div>
+                              <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={compareFoldRight}
+                                  onChange={e => setCompareFoldRight(Number(e.target.value))}
+                                  className="h-1.5 w-full rounded-lg bg-slate-100 accent-blue-500"
+                                />
+                                <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldRight}%</div>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       )}
                   </div>

@@ -61,8 +61,10 @@ const App: React.FC = () => {
   const [compareHeaderPos, setCompareHeaderPos] = useState({ x: 0, y: 0 });
   const compareHeaderRef = useRef<HTMLDivElement>(null);
   const compareHeaderDragOffset = useRef({ x: 0, y: 0 });
+  const compareHeaderPointerId = useRef<number | null>(null);
+  const compareHeaderDraggingRef = useRef(false);
   const compareHeaderMoved = useRef(false);
-  const [isComparePanelDragging, setIsComparePanelDragging] = useState<'left' | 'right' | 'common' | null>(null);
+  const [isComparePanelDragging, setIsComparePanelDragging] = useState<'left' | 'right' | null>(null);
   const comparePanelPosRef = useRef({ left: { x: 24, y: 24 }, right: { x: 24, y: 24 } });
   const comparePanelDragOffset = useRef({ x: 0, y: 0 });
   const comparePanelMoved = useRef({ left: false, right: false });
@@ -197,45 +199,82 @@ const App: React.FC = () => {
     }
   }, [activeTab, compareWorkspaceSize.width, compareWorkspaceSize.height]);
 
-  const startCommonPanelDrag = (clientX: number, clientY: number) => {
-    const panel = compareHeaderRef.current;
-    if (!panel) return;
-    const rect = panel.getBoundingClientRect();
-    compareHeaderDragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
-    compareHeaderMoved.current = true;
-    setIsComparePanelDragging('common');
-  };
-
   const handleComparePanelDragStart = (
-    side: 'left' | 'right' | 'common',
+    side: 'left' | 'right',
     e: React.MouseEvent | React.TouchEvent
   ) => {
-    if (side !== 'common') {
-      setCompareActiveSide(side);
-    }
-    const panel =
-      side === 'left'
-        ? compareLeftPanelRef.current
-        : side === 'right'
-          ? compareRightPanelRef.current
-          : compareHeaderRef.current;
+    setCompareActiveSide(side);
+    const panel = side === 'left' ? compareLeftPanelRef.current : compareRightPanelRef.current;
     if (!panel) return;
-    const target = e.target as HTMLElement | null;
-    if (side === 'common' && target?.closest('input[type="range"]')) return;
     if ('touches' in e) {
       e.preventDefault();
     }
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     const rect = panel.getBoundingClientRect();
-    if (side === 'common') {
-      startCommonPanelDrag(clientX, clientY);
-    } else {
-      comparePanelDragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
-      comparePanelMoved.current[side] = true;
-      setIsComparePanelDragging(side);
+    comparePanelDragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
+    comparePanelMoved.current[side] = true;
+    setIsComparePanelDragging(side);
+  };
+
+  const logCompareCommon = (...args: unknown[]) => {
+    if (typeof window === 'undefined') return;
+    console.log('[compare-common-panel]', ...args);
+  };
+
+  const handleCommonPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (activeTab !== 'compare') return;
+    const panel = compareHeaderRef.current;
+    if (!panel) {
+      logCompareCommon('pointerdown:panel-missing');
+      return;
+    }
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('input[type="range"]')) {
+      logCompareCommon('pointerdown:skip-range');
+      return;
+    }
+    const rect = panel.getBoundingClientRect();
+    compareHeaderDragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    compareHeaderMoved.current = true;
+    compareHeaderDraggingRef.current = true;
+    compareHeaderPointerId.current = e.pointerId;
+    panel.setPointerCapture(e.pointerId);
+    logCompareCommon('pointerdown', { x: e.clientX, y: e.clientY }, rect);
+    e.preventDefault();
+  };
+
+  const handleCommonPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!compareHeaderDraggingRef.current || !compareHeaderRef.current) return;
+    const panel = compareHeaderRef.current;
+    const rect = panel.getBoundingClientRect();
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = document.documentElement.clientHeight;
+    let nextX = e.clientX - compareHeaderDragOffset.current.x;
+    let nextY = e.clientY - compareHeaderDragOffset.current.y;
+    nextX = Math.max(0, Math.min(nextX, viewportWidth - rect.width));
+    nextY = Math.max(0, Math.min(nextY, viewportHeight - rect.height));
+    setCompareHeaderPos({ x: nextX, y: nextY });
+  };
+
+  const handleCommonPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!compareHeaderRef.current) return;
+    if (compareHeaderPointerId.current === e.pointerId) {
+      compareHeaderDraggingRef.current = false;
+      compareHeaderPointerId.current = null;
+      compareHeaderRef.current.releasePointerCapture(e.pointerId);
+      logCompareCommon('pointerup');
     }
   };
+
+  useEffect(() => {
+    if (activeTab !== 'compare') return;
+    if (!compareHeaderRef.current) {
+      logCompareCommon('panel-ref-missing');
+      return;
+    }
+    logCompareCommon('panel-mounted', compareHeaderRef.current.getBoundingClientRect());
+  }, [activeTab]);
 
   const resetCompareView = () => {
     compareZoomInitialized.current = false;
@@ -546,20 +585,6 @@ const App: React.FC = () => {
       const viewportWidth = document.documentElement.clientWidth;
       const viewportHeight = document.documentElement.clientHeight;
 
-      if (isComparePanelDragging === 'common') {
-        const panel = compareHeaderRef.current;
-        if (!panel) {
-          return;
-        }
-        const panelRect = panel.getBoundingClientRect();
-        let nextX = clientX - compareHeaderDragOffset.current.x;
-        let nextY = clientY - compareHeaderDragOffset.current.y;
-        nextX = Math.max(0, Math.min(nextX, viewportWidth - panelRect.width));
-        nextY = Math.max(0, Math.min(nextY, viewportHeight - panelRect.height));
-        setCompareHeaderPos({ x: nextX, y: nextY });
-        return;
-      }
-
       const panel = isComparePanelDragging === 'left' ? compareLeftPanelRef.current : compareRightPanelRef.current;
       if (!panel) return;
       const panelRect = panel.getBoundingClientRect();
@@ -588,47 +613,6 @@ const App: React.FC = () => {
       window.removeEventListener('touchend', handleEnd);
     };
   }, [isComparePanelDragging]);
-
-  const logCompareCommon = (...args: unknown[]) => {
-    if (typeof window === 'undefined') return;
-    console.log('[compare-common-panel]', ...args);
-  };
-
-  useEffect(() => {
-    const handleStart = (event: MouseEvent | TouchEvent) => {
-      if (activeTab !== 'compare') return;
-      const panel = compareHeaderRef.current;
-      if (!panel) {
-        logCompareCommon('start:panel-missing');
-        return;
-      }
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
-      const rect = panel.getBoundingClientRect();
-      if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
-        logCompareCommon('start:outside', { clientX, clientY }, rect);
-        return;
-      }
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('input[type="range"]')) {
-        logCompareCommon('start:skip-range');
-        return;
-      }
-      logCompareCommon('start', { clientX, clientY }, rect);
-      startCommonPanelDrag(clientX, clientY);
-      if ('touches' in event) {
-        event.preventDefault();
-      }
-    };
-
-    window.addEventListener('mousedown', handleStart, true);
-    window.addEventListener('touchstart', handleStart, { passive: false, capture: true });
-    logCompareCommon('listener-attached');
-    return () => {
-      window.removeEventListener('mousedown', handleStart, true);
-      window.removeEventListener('touchstart', handleStart, true);
-    };
-  }, [activeTab]);
 
   // common panel drag handled in compare panel drag effect
 
@@ -703,6 +687,10 @@ const App: React.FC = () => {
       ref={compareHeaderRef}
       style={{ left: 0, top: 0, transform: `translate3d(${compareHeaderPos.x}px, ${compareHeaderPos.y}px, 0)` }}
       className="fixed z-[9999] rounded-2xl border border-slate-200 bg-white/95 shadow-xl touch-none cursor-grab active:cursor-grabbing select-none pointer-events-auto"
+      onPointerDown={handleCommonPointerDown}
+      onPointerMove={handleCommonPointerMove}
+      onPointerUp={handleCommonPointerUp}
+      onPointerCancel={handleCommonPointerUp}
     >
       <div className="flex cursor-grab items-center justify-between gap-2 border-b px-3 py-2 text-[10px] font-black text-slate-500 active:cursor-grabbing">
         <span>공통 제어</span>

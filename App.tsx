@@ -668,7 +668,9 @@ const App: React.FC = () => {
             <div className="w-full h-28 relative pointer-events-none overflow-hidden rounded-lg border bg-slate-50/50 border-slate-100">
                 <NetCanvas net={net} scale={scale} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{x:0, y:0}} showGrid={false} />
             </div>
-            <span className="mt-2 text-[10px] font-bold text-slate-500 uppercase">유형 {net.patternId}-{net.variantIndex}</span>
+            <span className="mt-2 text-[10px] font-bold text-slate-500 uppercase">
+              {mode === 'cube' ? `유형 ${net.patternId}` : `유형 ${net.patternId}-${net.variantIndex}`}
+            </span>
         </button>
     );
   };

@@ -51,7 +51,10 @@ const App: React.FC = () => {
   const [compareFoldRight, setCompareFoldRight] = useState(0);
   const [comparePanLeft, setComparePanLeft] = useState({ x: 0, y: 0 });
   const [comparePanRight, setComparePanRight] = useState({ x: 0, y: 0 });
-  const [compareRotation, setCompareRotation] = useState({ left: 0, right: 0 });
+  const [compareRotation, setCompareRotation] = useState({
+    left: DEFAULT_ROTATION,
+    right: DEFAULT_ROTATION
+  });
   const [compareActiveSide, setCompareActiveSide] = useState<'left' | 'right'>('left');
   const [comparePanelPos, setComparePanelPos] = useState({
     left: { x: 24, y: 24 },
@@ -287,7 +290,7 @@ const App: React.FC = () => {
     setCompareZoomLevel(1.0);
     setComparePanLeft({ x: 0, y: 0 });
     setComparePanRight({ x: 0, y: 0 });
-    setCompareRotation({ left: 0, right: 0 });
+    setCompareRotation({ left: DEFAULT_ROTATION, right: DEFAULT_ROTATION });
     setCompareFoldLeft(0);
     setCompareFoldRight(0);
   };
@@ -581,7 +584,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (activeTab !== 'compare') return;
-    setCompareRotation({ left: 0, right: 0 });
+    setCompareRotation({ left: DEFAULT_ROTATION, right: DEFAULT_ROTATION });
   }, [activeTab, compareLeftNet?.id, compareRightNet?.id]);
 
   useEffect(() => {

@@ -20,14 +20,14 @@ interface CompareCanvasProps {
   scale: number;
   leftPan: { x: number; y: number };
   rightPan: { x: number; y: number };
-  leftRotation: number;
-  rightRotation: number;
+  leftRotation: { x: number; y: number };
+  rightRotation: { x: number; y: number };
   leftFoldProgress: number;
   rightFoldProgress: number;
   onLeftPanChange: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
   onRightPanChange: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
-  onLeftRotationChange: (value: number) => void;
-  onRightRotationChange: (value: number) => void;
+  onLeftRotationChange: (value: { x: number; y: number }) => void;
+  onRightRotationChange: (value: { x: number; y: number }) => void;
   canvasSize: { width: number; height: number };
   showGrid?: boolean;
   activeSide?: Side;
@@ -57,13 +57,6 @@ const edgeKey = (edge: EdgeUnit) => {
   const p2 = `${quantize(edge.x2)},${quantize(edge.y2)}`;
   return p1 < p2 ? `${p1}|${p2}` : `${p2}|${p1}`;
 };
-
-const degToRad = (deg: number) => (deg * Math.PI) / 180;
-
-const rotatePoint = (x: number, y: number, cos: number, sin: number) => ({
-  x: x * cos - y * sin,
-  y: x * sin + y * cos
-});
 
 const buildEdges = (net: NetData) => {
   const rootFace = net.faces.find(face => face.id === 0) ?? net.faces[0];
@@ -137,26 +130,6 @@ const translateEdges = (edges: Map<string, EdgeUnit>, offsetUnits: { x: number; 
   return translated;
 };
 
-const rotateEdges = (edges: Map<string, EdgeUnit>, rotationDeg: number, center: { x: number; y: number }) => {
-  if (!rotationDeg) return edges;
-  const rad = degToRad(rotationDeg);
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-  const rotated = new Map<string, EdgeUnit>();
-  edges.forEach(edge => {
-    const p1 = rotatePoint(edge.x1 - center.x, edge.y1 - center.y, cos, sin);
-    const p2 = rotatePoint(edge.x2 - center.x, edge.y2 - center.y, cos, sin);
-    const next = normalizeEdge({
-      ...edge,
-      x1: p1.x + center.x,
-      y1: p1.y + center.y,
-      x2: p2.x + center.x,
-      y2: p2.y + center.y
-    });
-    rotated.set(edgeKey(next), next);
-  });
-  return rotated;
-};
 
 export const CompareCanvas: React.FC<CompareCanvasProps> = ({
   leftNet,
@@ -184,25 +157,9 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
   const dragSide = useRef<Side | null>(null);
   const lastPos = useRef({ x: 0, y: 0 });
   const dragMode = useRef<'move' | 'rotate'>('move');
-  const rotateStart = useRef({ angle: 0, rotation: 0 });
 
   const leftAlignment = useMemo(() => getNetAlignment(leftNet, scale), [leftNet, scale]);
   const rightAlignment = useMemo(() => getNetAlignment(rightNet, scale), [rightNet, scale]);
-
-  const leftCenterOffset = useMemo(
-    () => ({
-      x: leftAlignment.netCenter.x - leftAlignment.rootCenter.x,
-      y: leftAlignment.netCenter.y - leftAlignment.rootCenter.y
-    }),
-    [leftAlignment]
-  );
-  const rightCenterOffset = useMemo(
-    () => ({
-      x: rightAlignment.netCenter.x - rightAlignment.rootCenter.x,
-      y: rightAlignment.netCenter.y - rightAlignment.rootCenter.y
-    }),
-    [rightAlignment]
-  );
 
   const leftEdges = useMemo(() => buildEdges(leftNet), [leftNet]);
   const rightEdges = useMemo(() => buildEdges(rightNet), [rightNet]);
@@ -217,12 +174,12 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
   };
 
   const leftWorldEdges = useMemo(
-    () => translateEdges(rotateEdges(leftEdges, leftRotation, leftCenterOffset), leftOffsetUnits),
-    [leftEdges, leftOffsetUnits, leftRotation, leftCenterOffset]
+    () => translateEdges(leftEdges, leftOffsetUnits),
+    [leftEdges, leftOffsetUnits]
   );
   const rightWorldEdges = useMemo(
-    () => translateEdges(rotateEdges(rightEdges, rightRotation, rightCenterOffset), rightOffsetUnits),
-    [rightEdges, rightOffsetUnits, rightRotation, rightCenterOffset]
+    () => translateEdges(rightEdges, rightOffsetUnits),
+    [rightEdges, rightOffsetUnits]
   );
 
   const { overlapEdges, leftOnlyEdges, rightOnlyEdges } = useMemo(() => {
@@ -259,67 +216,27 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
   const getBounds = (
     net: NetData,
     alignment: ReturnType<typeof getNetAlignment>,
-    pan: { x: number; y: number },
-    rotationDeg: number,
-    centerOffset: { x: number; y: number }
+    pan: { x: number; y: number }
   ) => {
     if (!alignment.rootFace) return null;
     const originX = canvasCenter.x + alignment.baseOffset.x + pan.x;
     const originY = canvasCenter.y + alignment.baseOffset.y + pan.y;
-    const corners = [
-      { x: 0 - alignment.rootCenter.x, y: 0 - alignment.rootCenter.y },
-      { x: net.totalWidth - alignment.rootCenter.x, y: 0 - alignment.rootCenter.y },
-      { x: net.totalWidth - alignment.rootCenter.x, y: net.totalHeight - alignment.rootCenter.y },
-      { x: 0 - alignment.rootCenter.x, y: net.totalHeight - alignment.rootCenter.y }
-    ];
-    if (rotationDeg) {
-      const rad = degToRad(rotationDeg);
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      corners.forEach(point => {
-        const rotated = rotatePoint(point.x - centerOffset.x, point.y - centerOffset.y, cos, sin);
-        point.x = rotated.x + centerOffset.x;
-        point.y = rotated.y + centerOffset.y;
-      });
-    }
-    const minX = Math.min(...corners.map(point => point.x));
-    const maxX = Math.max(...corners.map(point => point.x));
-    const minY = Math.min(...corners.map(point => point.y));
-    const maxY = Math.max(...corners.map(point => point.y));
     return {
-      left: originX + minX * scale,
-      right: originX + maxX * scale,
-      top: originY + minY * scale,
-      bottom: originY + maxY * scale
+      left: originX + (0 - alignment.rootCenter.x) * scale,
+      right: originX + (net.totalWidth - alignment.rootCenter.x) * scale,
+      top: originY + (0 - alignment.rootCenter.y) * scale,
+      bottom: originY + (net.totalHeight - alignment.rootCenter.y) * scale
     };
   };
 
   const leftBounds = useMemo(
-    () => getBounds(leftNet, leftAlignment, leftPan, leftRotation, leftCenterOffset),
-    [leftNet, leftAlignment, leftPan, leftRotation, leftCenterOffset, scale, canvasCenter.x, canvasCenter.y]
+    () => getBounds(leftNet, leftAlignment, leftPan),
+    [leftNet, leftAlignment, leftPan, scale, canvasCenter.x, canvasCenter.y]
   );
   const rightBounds = useMemo(
-    () => getBounds(rightNet, rightAlignment, rightPan, rightRotation, rightCenterOffset),
-    [rightNet, rightAlignment, rightPan, rightRotation, rightCenterOffset, scale, canvasCenter.x, canvasCenter.y]
+    () => getBounds(rightNet, rightAlignment, rightPan),
+    [rightNet, rightAlignment, rightPan, scale, canvasCenter.x, canvasCenter.y]
   );
-
-  const leftCenter = useMemo(() => {
-    const originX = canvasCenter.x + leftAlignment.baseOffset.x + leftPan.x;
-    const originY = canvasCenter.y + leftAlignment.baseOffset.y + leftPan.y;
-    return {
-      x: originX + leftCenterOffset.x * scale,
-      y: originY + leftCenterOffset.y * scale
-    };
-  }, [canvasCenter.x, canvasCenter.y, leftAlignment, leftPan, leftCenterOffset, scale]);
-
-  const rightCenter = useMemo(() => {
-    const originX = canvasCenter.x + rightAlignment.baseOffset.x + rightPan.x;
-    const originY = canvasCenter.y + rightAlignment.baseOffset.y + rightPan.y;
-    return {
-      x: originX + rightCenterOffset.x * scale,
-      y: originY + rightCenterOffset.y * scale
-    };
-  }, [canvasCenter.x, canvasCenter.y, rightAlignment, rightPan, rightCenterOffset, scale]);
 
   const hitTest = (x: number, y: number) => {
     const leftHit = leftBounds
@@ -345,15 +262,7 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
     isDragging.current = true;
     dragSide.current = side;
     dragMode.current = mode;
-    if (mode === 'rotate') {
-      const center = side === 'left' ? leftCenter : rightCenter;
-      rotateStart.current = {
-        angle: Math.atan2(clientY - center.y, clientX - center.x),
-        rotation: side === 'left' ? leftRotation : rightRotation
-      };
-    } else {
-      lastPos.current = { x: clientX, y: clientY };
-    }
+    lastPos.current = { x: clientX, y: clientY };
     onActiveSideChange?.(side);
   };
 
@@ -362,21 +271,24 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
       if (!isDragging.current || !dragSide.current) return;
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
-      if (dragMode.current === 'rotate') {
-        const center = dragSide.current === 'left' ? leftCenter : rightCenter;
-        const angle = Math.atan2(clientY - center.y, clientX - center.x);
-        const delta = (angle - rotateStart.current.angle) * (180 / Math.PI);
-        const nextRotation = rotateStart.current.rotation + delta;
-        if (dragSide.current === 'left') {
-          onLeftRotationChange(nextRotation);
-        } else {
-          onRightRotationChange(nextRotation);
-        }
-        return;
-      }
-
       const deltaX = clientX - lastPos.current.x;
       const deltaY = clientY - lastPos.current.y;
+
+      if (dragMode.current === 'rotate') {
+        if (dragSide.current === 'left') {
+          onLeftRotationChange({
+            x: leftRotation.x - deltaY * 0.5,
+            y: leftRotation.y + deltaX * 0.5
+          });
+        } else {
+          onRightRotationChange({
+            x: rightRotation.x - deltaY * 0.5,
+            y: rightRotation.y + deltaX * 0.5
+          });
+        }
+        lastPos.current = { x: clientX, y: clientY };
+        return;
+      }
 
       if (dragSide.current === 'left') {
         onLeftPanChange(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
@@ -417,7 +329,7 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
       window.removeEventListener('touchmove', handleMove);
       window.removeEventListener('touchend', handleEnd);
     };
-  }, [leftCenter, rightCenter, onLeftPanChange, onLeftRotationChange, onRightPanChange, onRightRotationChange, scale]);
+  }, [leftRotation, rightRotation, onLeftPanChange, onLeftRotationChange, onRightPanChange, onRightRotationChange, scale]);
 
   const renderEdges = (edges: EdgeUnit[], color: string, foldProgress: number) => {
     const sw = Math.max(0.5, scale / 40);
@@ -456,6 +368,10 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
     : `calc(50% - ${gridLineOffset}px) calc(50% - ${gridLineOffset}px)`;
   const showOverlapLines = leftFoldProgress === 0 && rightFoldProgress === 0;
   const activeMode = activeSide === 'left' ? leftMode : rightMode;
+  const isRotating = leftMode === 'rotate' || rightMode === 'rotate';
+  const hasRotation =
+    leftRotation.x !== 0 || leftRotation.y !== 0 || rightRotation.x !== 0 || rightRotation.y !== 0;
+  const useNetCanvas = !showOverlapLines || isRotating || hasRotation;
   const cursorClass = activeMode === 'rotate' ? 'cursor-crosshair' : 'cursor-move';
 
   return (
@@ -485,7 +401,7 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
         />
       )}
 
-      {showOverlapLines ? (
+      {!useNetCanvas ? (
         <svg
           className="absolute inset-0 h-full w-full pointer-events-none"
           width={canvasSize.width || 0}
@@ -506,7 +422,7 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
               interactive={false}
               foldProgress={leftFoldProgress}
               transparency={1}
-              rotation={{ x: 0, y: 0 }}
+              rotation={leftRotation}
               panOffset={leftPan}
               showGrid={false}
               canvasSize={canvasSize}
@@ -523,7 +439,7 @@ export const CompareCanvas: React.FC<CompareCanvasProps> = ({
               interactive={false}
               foldProgress={rightFoldProgress}
               transparency={1}
-              rotation={{ x: 0, y: 0 }}
+              rotation={rightRotation}
               panOffset={rightPan}
               showGrid={false}
               canvasSize={canvasSize}

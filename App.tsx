@@ -1040,7 +1040,7 @@ const App: React.FC = () => {
                         <div
                           ref={compareLeftPanelRef}
                           style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.left.x}px, ${comparePanelPos.left.y}px, 0)` }}
-                          className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'} ${comparePanelCollapsed.left ? 'w-[220px] h-[72px] overflow-hidden' : 'w-64'}`}
+                          className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'} ${comparePanelCollapsed.left ? 'w-[220px]' : 'w-64'}`}
                           onMouseDown={() => setCompareActiveSide('left')}
                           onTouchStart={() => setCompareActiveSide('left')}
                         >
@@ -1069,7 +1069,7 @@ const App: React.FC = () => {
                             </div>
                           </div>
                           {comparePanelCollapsed.left ? (
-                            <div className="p-1.5 space-y-1.5">
+                            <div className="p-1.5 space-y-2">
                               <div className="space-y-1">
                                 <span className="text-[8px] font-black text-slate-400 uppercase">조작 모드</span>
                                 <div className="flex p-1 bg-slate-100 rounded-lg">
@@ -1198,7 +1198,7 @@ const App: React.FC = () => {
                         <div
                           ref={compareRightPanelRef}
                           style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.right.x}px, ${comparePanelPos.right.y}px, 0)` }}
-                          className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'} ${comparePanelCollapsed.right ? 'w-[220px] h-[72px] overflow-hidden' : 'w-64'}`}
+                          className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'} ${comparePanelCollapsed.right ? 'w-[220px]' : 'w-64'}`}
                           onMouseDown={() => setCompareActiveSide('right')}
                           onTouchStart={() => setCompareActiveSide('right')}
                         >
@@ -1227,7 +1227,7 @@ const App: React.FC = () => {
                             </div>
                           </div>
                           {comparePanelCollapsed.right ? (
-                            <div className="p-1.5 space-y-1.5">
+                            <div className="p-1.5 space-y-2">
                               <div className="space-y-1">
                                 <span className="text-[8px] font-black text-slate-400 uppercase">조작 모드</span>
                                 <div className="flex p-1 bg-slate-100 rounded-lg">

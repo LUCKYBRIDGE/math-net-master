@@ -76,6 +76,10 @@ const App: React.FC = () => {
   const comparePanelPosRef = useRef({ left: { x: 24, y: 24 }, right: { x: 24, y: 24 } });
   const comparePanelDragOffset = useRef({ x: 0, y: 0 });
   const comparePanelMoved = useRef({ left: false, right: false });
+  const compareInitialPanRef = useRef({
+    left: { x: 0, y: 0 },
+    right: { x: 0, y: 0 }
+  });
   const compareLeftPanelRef = useRef<HTMLDivElement>(null);
   const compareRightPanelRef = useRef<HTMLDivElement>(null);
   const comparePanInitialized = useRef(false);
@@ -348,8 +352,11 @@ const App: React.FC = () => {
     const gapUnits = 2;
     const leftOffsetUnits = compareLeftNet.totalWidth / 2 + gapUnits;
     const rightOffsetUnits = compareRightNet.totalWidth / 2 + gapUnits;
-    setComparePanLeft({ x: -Math.round(leftOffsetUnits * compareScale), y: 0 });
-    setComparePanRight({ x: Math.round(rightOffsetUnits * compareScale), y: 0 });
+    const nextLeftPan = { x: -Math.round(leftOffsetUnits * compareScale), y: 0 };
+    const nextRightPan = { x: Math.round(rightOffsetUnits * compareScale), y: 0 };
+    setComparePanLeft(nextLeftPan);
+    setComparePanRight(nextRightPan);
+    compareInitialPanRef.current = { left: nextLeftPan, right: nextRightPan };
     comparePanInitialized.current = true;
   }, [activeTab, compareLeftNet, compareRightNet, compareScale]);
 
@@ -546,6 +553,19 @@ const App: React.FC = () => {
       setCompareLeftDims(prev => ({ ...prev, [key]: clampDim(value) }));
     } else {
       setCompareRightDims(prev => ({ ...prev, [key]: clampDim(value) }));
+    }
+  };
+
+  const resetCompareRotation = (side: 'left' | 'right') => {
+    setCompareRotation(prev => ({ ...prev, [side]: DEFAULT_ROTATION }));
+  };
+
+  const resetComparePosition = (side: 'left' | 'right') => {
+    const initial = compareInitialPanRef.current[side];
+    if (side === 'left') {
+      setComparePanLeft(initial);
+    } else {
+      setComparePanRight(initial);
     }
   };
 
@@ -1132,6 +1152,20 @@ const App: React.FC = () => {
                                   </button>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => resetCompareRotation('left')}
+                                  className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
+                                >
+                                  각도 초기화
+                                </button>
+                                <button
+                                  onClick={() => resetComparePosition('left')}
+                                  className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
+                                >
+                                  원위치
+                                </button>
+                              </div>
                               <div className="space-y-2">
                                 <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                                 <select
@@ -1289,6 +1323,20 @@ const App: React.FC = () => {
                                     각도
                                   </button>
                                 </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => resetCompareRotation('right')}
+                                  className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
+                                >
+                                  각도 초기화
+                                </button>
+                                <button
+                                  onClick={() => resetComparePosition('right')}
+                                  className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
+                                >
+                                  원위치
+                                </button>
                               </div>
                               <div className="space-y-2">
                                 <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>

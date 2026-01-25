@@ -29,8 +29,8 @@ const App: React.FC = () => {
   const [faceColors, setFaceColors] = useState<Record<number, string>>({});
   const [selectedPaintColor, setSelectedPaintColor] = useState<string | null>(null);
   
-  const [activeTool, setActiveTool] = useState<'smart' | 'move'>('smart');
-  const [interactionMode, setInteractionMode] = useState<'rotate' | 'move'>('rotate');
+  const [activeTool, setActiveTool] = useState<'move' | 'rotate'>('move');
+  const [interactionMode, setInteractionMode] = useState<'rotate' | 'move'>('move');
   
   const [viewRotation, setViewRotation] = useState(DEFAULT_ROTATION);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 }); 
@@ -51,6 +51,7 @@ const App: React.FC = () => {
   const [compareFoldRight, setCompareFoldRight] = useState(0);
   const [comparePanLeft, setComparePanLeft] = useState({ x: 0, y: 0 });
   const [comparePanRight, setComparePanRight] = useState({ x: 0, y: 0 });
+  const [compareRotation, setCompareRotation] = useState({ left: 0, right: 0 });
   const [compareActiveSide, setCompareActiveSide] = useState<'left' | 'right'>('left');
   const [comparePanelPos, setComparePanelPos] = useState({
     left: { x: 24, y: 24 },
@@ -59,6 +60,10 @@ const App: React.FC = () => {
   const [comparePanelCollapsed, setComparePanelCollapsed] = useState({ left: false, right: false });
   const [compareHeaderCollapsed, setCompareHeaderCollapsed] = useState(false);
   const [compareHeaderPos, setCompareHeaderPos] = useState({ x: 0, y: 0 });
+  const [compareInteractionMode, setCompareInteractionMode] = useState<{ left: 'move' | 'rotate'; right: 'move' | 'rotate' }>({
+    left: 'move',
+    right: 'move'
+  });
   const compareHeaderRef = useRef<HTMLDivElement>(null);
   const compareHeaderDragOffset = useRef({ x: 0, y: 0 });
   const compareHeaderPointerId = useRef<number | null>(null);
@@ -282,6 +287,7 @@ const App: React.FC = () => {
     setCompareZoomLevel(1.0);
     setComparePanLeft({ x: 0, y: 0 });
     setComparePanRight({ x: 0, y: 0 });
+    setCompareRotation({ left: 0, right: 0 });
     setCompareFoldLeft(0);
     setCompareFoldRight(0);
   };
@@ -348,12 +354,7 @@ const App: React.FC = () => {
     const target = e.target as HTMLElement;
     if (target.closest('.tool-panel')) return;
     
-    const hitFace = target.closest('.net-face-target');
-    if (activeTool === 'move') {
-      setInteractionMode('move');
-    } else {
-      setInteractionMode(hitFace ? 'rotate' : 'move');
-    }
+    setInteractionMode(activeTool);
     
     setIsCanvasInteracting(true);
     setIsAnimatingRotation(false);
@@ -547,6 +548,8 @@ const App: React.FC = () => {
 
   const compareFoldSynced = compareFoldLeft === compareFoldRight;
   const compareFoldCommon = compareFoldSynced ? compareFoldLeft : 0;
+  const compareModeSynced = compareInteractionMode.left === compareInteractionMode.right;
+  const compareModeCommon = compareModeSynced ? compareInteractionMode.left : null;
 
   useEffect(() => {
     if (activeTab !== 'compare') {
@@ -574,6 +577,11 @@ const App: React.FC = () => {
     if (activeTab !== 'compare') return;
     compareZoomInitialized.current = false;
     comparePanInitialized.current = false;
+  }, [activeTab, compareLeftNet?.id, compareRightNet?.id]);
+
+  useEffect(() => {
+    if (activeTab !== 'compare') return;
+    setCompareRotation({ left: 0, right: 0 });
   }, [activeTab, compareLeftNet?.id, compareRightNet?.id]);
 
   useEffect(() => {
@@ -686,13 +694,15 @@ const App: React.FC = () => {
     <div
       ref={compareHeaderRef}
       style={{ left: 0, top: 0, transform: `translate3d(${compareHeaderPos.x}px, ${compareHeaderPos.y}px, 0)` }}
-      className="fixed z-[9999] rounded-2xl border border-slate-200 bg-white/95 shadow-xl touch-none cursor-grab active:cursor-grabbing select-none pointer-events-auto"
-      onPointerDown={handleCommonPointerDown}
-      onPointerMove={handleCommonPointerMove}
-      onPointerUp={handleCommonPointerUp}
-      onPointerCancel={handleCommonPointerUp}
+      className="fixed z-[9999] rounded-2xl border border-slate-200 bg-white/95 shadow-xl touch-none select-none pointer-events-auto"
     >
-      <div className="flex cursor-grab items-center justify-between gap-2 border-b px-3 py-2 text-[10px] font-black text-slate-500 active:cursor-grabbing">
+      <div
+        className="flex cursor-grab items-center justify-between gap-2 border-b px-3 py-2 text-[10px] font-black text-slate-500 active:cursor-grabbing"
+        onPointerDown={handleCommonPointerDown}
+        onPointerMove={handleCommonPointerMove}
+        onPointerUp={handleCommonPointerUp}
+        onPointerCancel={handleCommonPointerUp}
+      >
         <span>공통 제어</span>
         <button
           onClick={(e) => {
@@ -718,6 +728,26 @@ const App: React.FC = () => {
           </div>
         ) : (
           <>
+            <div className="flex items-center justify-between gap-2">
+              <span className="uppercase text-slate-400">조작 모드</span>
+              <div className="flex items-center gap-2">
+                {!compareModeSynced && <span className="text-[9px] text-slate-400">개별</span>}
+                <div className="flex p-1 bg-slate-100 rounded-xl">
+                  <button
+                    onClick={() => setCompareInteractionMode({ left: 'move', right: 'move' })}
+                    className={`px-2 py-1 rounded-lg text-[9px] font-black transition-all ${compareModeCommon === 'move' ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
+                  >
+                    이동
+                  </button>
+                  <button
+                    onClick={() => setCompareInteractionMode({ left: 'rotate', right: 'rotate' })}
+                    className={`px-2 py-1 rounded-lg text-[9px] font-black transition-all ${compareModeCommon === 'rotate' ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
+                  >
+                    각도
+                  </button>
+                </div>
+              </div>
+            </div>
             <div className="flex flex-wrap items-center gap-3">
               <span className="uppercase text-slate-400">공통 배율</span>
               <button onClick={() => adjustCompareZoom(-0.1)} className="w-7 h-7 rounded-lg bg-slate-100">-</button>
@@ -822,22 +852,19 @@ const App: React.FC = () => {
               <div className="p-3">{foldSliderOnly}</div>
             ) : (
               <div className="p-4 space-y-6 panel-scroll flex-1">
-                  {/* 확대 및 모드 */}
-                  <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                          <span className="text-[9px] font-black text-slate-400 uppercase">배율</span>
-                          <div className="flex items-center p-1 bg-slate-100 rounded-xl">
-                              <button onClick={() => adjustZoom(-0.1)} className="w-8 h-8 font-bold">-</button>
-                              <div className="flex-1 text-center text-[10px] font-black">{Math.round(zoomLevel * 100)}%</div>
-                              <button onClick={() => adjustZoom(0.1)} className="w-8 h-8 font-bold">+</button>
-                          </div>
-                      </div>
-                      <div className="space-y-2">
-                          <span className="text-[9px] font-black text-slate-400 uppercase">드래그</span>
-                          <div className="flex p-1 bg-slate-100 rounded-xl">
-                              <button onClick={() => setActiveTool('smart')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'smart' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>회전</button>
-                              <button onClick={() => setActiveTool('move')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'move' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>이동</button>
-                          </div>
+                  <div className="space-y-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase">조작 모드</span>
+                    <div className="flex p-1 bg-slate-100 rounded-xl">
+                      <button onClick={() => setActiveTool('move')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'move' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>이동</button>
+                      <button onClick={() => setActiveTool('rotate')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'rotate' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>각도</button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                      <span className="text-[9px] font-black text-slate-400 uppercase">배율</span>
+                      <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+                          <button onClick={() => adjustZoom(-0.1)} className="w-8 h-8 font-bold">-</button>
+                          <div className="flex-1 text-center text-[10px] font-black">{Math.round(zoomLevel * 100)}%</div>
+                          <button onClick={() => adjustZoom(0.1)} className="w-8 h-8 font-bold">+</button>
                       </div>
                   </div>
 
@@ -991,10 +1018,16 @@ const App: React.FC = () => {
                             rightFoldProgress={compareFoldRight}
                             onLeftPanChange={setComparePanLeft}
                             onRightPanChange={setComparePanRight}
+                            leftRotation={compareRotation.left}
+                            rightRotation={compareRotation.right}
+                            onLeftRotationChange={(value) => setCompareRotation(prev => ({ ...prev, left: value }))}
+                            onRightRotationChange={(value) => setCompareRotation(prev => ({ ...prev, right: value }))}
                             canvasSize={compareWorkspaceSize}
                             showGrid={showGrid}
                             activeSide={compareActiveSide}
                             onActiveSideChange={setCompareActiveSide}
+                            leftMode={compareInteractionMode.left}
+                            rightMode={compareInteractionMode.right}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-400">전개도를 선택하세요</div>
@@ -1037,6 +1070,23 @@ const App: React.FC = () => {
                           </div>
                           {comparePanelCollapsed.left ? (
                             <div className="p-1.5 space-y-1.5">
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase">조작 모드</span>
+                                <div className="flex p-1 bg-slate-100 rounded-lg">
+                                  <button
+                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'move' }))}
+                                    className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.left === 'move' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
+                                  >
+                                    이동
+                                  </button>
+                                  <button
+                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'rotate' }))}
+                                    className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.left === 'rotate' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
+                                  >
+                                    각도
+                                  </button>
+                                </div>
+                              </div>
                               <select
                                 className="w-full rounded-md border border-slate-200 bg-white p-1 text-[9px] font-black"
                                 value={compareLeftNet.id}
@@ -1062,6 +1112,23 @@ const App: React.FC = () => {
                             </div>
                           ) : (
                             <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">조작 모드</span>
+                                <div className="flex p-1 bg-slate-100 rounded-xl">
+                                  <button
+                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'move' }))}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.left === 'move' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
+                                  >
+                                    이동
+                                  </button>
+                                  <button
+                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'rotate' }))}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.left === 'rotate' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
+                                  >
+                                    각도
+                                  </button>
+                                </div>
+                              </div>
                               <div className="space-y-2">
                                 <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                                 <select
@@ -1161,6 +1228,23 @@ const App: React.FC = () => {
                           </div>
                           {comparePanelCollapsed.right ? (
                             <div className="p-1.5 space-y-1.5">
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase">조작 모드</span>
+                                <div className="flex p-1 bg-slate-100 rounded-lg">
+                                  <button
+                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'move' }))}
+                                    className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.right === 'move' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
+                                  >
+                                    이동
+                                  </button>
+                                  <button
+                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'rotate' }))}
+                                    className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.right === 'rotate' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
+                                  >
+                                    각도
+                                  </button>
+                                </div>
+                              </div>
                               <select
                                 className="w-full rounded-md border border-slate-200 bg-white p-1 text-[9px] font-black"
                                 value={compareRightNet.id}
@@ -1186,6 +1270,23 @@ const App: React.FC = () => {
                             </div>
                           ) : (
                             <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">조작 모드</span>
+                                <div className="flex p-1 bg-slate-100 rounded-xl">
+                                  <button
+                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'move' }))}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.right === 'move' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
+                                  >
+                                    이동
+                                  </button>
+                                  <button
+                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'rotate' }))}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.right === 'rotate' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
+                                  >
+                                    각도
+                                  </button>
+                                </div>
+                              </div>
                               <div className="space-y-2">
                                 <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
                                 <select

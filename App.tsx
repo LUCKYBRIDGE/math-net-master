@@ -1553,6 +1553,43 @@ const App: React.FC = () => {
                 </div>
               ) : (mode === 'prism' || mode === 'pyramid') ? (
                 <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
+                  {/* 중앙 캔버스 플로팅 컨트롤 */}
+                  <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 pointer-events-none">
+                    {/* 밑면 다각형 선택 */}
+                    <div className="flex bg-slate-800/80 backdrop-blur-md rounded-2xl p-1 shadow-lg pointer-events-auto border border-slate-700/50">
+                      {[3, 4, 5, 6].map(n => (
+                        <button key={n}
+                          onClick={() => {
+                            if (mode === 'prism') { setPrismSides(n); setPrismSubtype('regular'); }
+                            else { setPyramidSides(n); setPyramidSubtype('regular'); }
+                          }}
+                          className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${(mode === 'prism' ? prismSides === n : pyramidSides === n) ? (mode === 'prism' ? 'bg-blue-500 text-white shadow-md' : 'bg-purple-500 text-white shadow-md') : 'text-slate-200 hover:bg-slate-700 hover:text-white'}`}
+                        >
+                          {['삼', '사', '오', '육'][n - 3]}각{mode === 'prism' ? '기둥' : '뿔'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* 세부 모양 선택 (삼/사각일 때만) */}
+                    {((mode === 'prism' && prismSides === 3) || (mode === 'pyramid' && pyramidSides === 3)) && (
+                      <div className="flex gap-1 p-1 bg-white/95 backdrop-blur-md rounded-xl shadow-lg pointer-events-auto border border-slate-200 animate-in fade-in slide-in-from-top-2">
+                        <span className="flex items-center px-3 text-[11px] font-black text-slate-500">삼각형 모양</span>
+                        <div className="w-[1px] h-6 bg-slate-200 my-auto mx-1" />
+                        <button onClick={() => mode === 'prism' ? setPrismSubtype('regular') : setPyramidSubtype('regular')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${(mode === 'prism' ? prismSubtype : pyramidSubtype) === 'regular' ? 'bg-slate-800 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:bg-slate-100'}`}>정삼각형</button>
+                        <button onClick={() => mode === 'prism' ? setPrismSubtype('right') : setPyramidSubtype('right')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${(mode === 'prism' ? prismSubtype : pyramidSubtype) === 'right' ? 'bg-rose-500 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:bg-slate-100'}`}>직각삼각형</button>
+                        {mode === 'prism' && <button onClick={() => setPrismSubtype('iso')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${prismSubtype === 'iso' ? 'bg-amber-500 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:bg-slate-100'}`}>이등변삼각형</button>}
+                      </div>
+                    )}
+
+                    {((mode === 'prism' && prismSides === 4) || (mode === 'pyramid' && pyramidSides === 4)) && (
+                      <div className="flex gap-1 p-1 bg-white/95 backdrop-blur-md rounded-xl shadow-lg pointer-events-auto border border-slate-200 animate-in fade-in slide-in-from-top-2">
+                        <span className="flex items-center px-3 text-[11px] font-black text-slate-500">사각형 모양</span>
+                        <div className="w-[1px] h-6 bg-slate-200 my-auto mx-1" />
+                        <button onClick={() => mode === 'prism' ? setPrismSubtype('regular') : setPyramidSubtype('regular')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${(mode === 'prism' ? prismSubtype : pyramidSubtype) === 'regular' ? 'bg-slate-800 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:bg-slate-100'}`}>정사각형</button>
+                        <button onClick={() => mode === 'prism' ? setPrismSubtype('rect') : setPyramidSubtype('rect')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${(mode === 'prism' ? prismSubtype : pyramidSubtype) === 'rect' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:bg-slate-100'}`}>직사각형</button>
+                      </div>
+                    )}
+                  </div>
                   <div ref={workspaceRef} className="flex-1 flex items-center justify-center relative overflow-hidden">
                     {mode === 'prism' && (() => {
                       const n = prismSides;

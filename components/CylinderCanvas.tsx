@@ -78,9 +78,8 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
         ? `${Math.round(canvasSize.width / 2)}px ${Math.round(canvasSize.height / 2)}px`
         : `50% 50%`;
 
-    // 캡이 부착될 strip 인덱스
-    const topCapIndex = 0;
-    const bottomCapIndex = Math.floor(N / 2);
+    const rS = radius * scale;
+    const hS = height * scale;
 
     return (
         <div
@@ -141,13 +140,12 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                 </div>
             )}
 
-            {/* rectify 모드: 2D SVG 원→직사각형 변환 */}
+            {/* rectify 모드 SVG */}
             {actionMode === 'rectify' && (() => {
                 const rp = foldProgress / 100;
                 const M = N;
                 const theta = (2 * Math.PI) / M;
                 const L = (2 * Math.PI * radius * scale) / M;
-                const rS = radius * scale;
                 const rectW = (M / 2) * L;
                 const cW = canvasSize?.width || 800;
                 const cH = canvasSize?.height || 600;
@@ -207,13 +205,12 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
 
                     {/* 원기둥 본체 */}
                     <div style={{ transformStyle: 'preserve-3d' }}>
+                        {/* 옆면 strip들 — 단일면 (양면 동일 색상) */}
                         {Array.from({ length: N }).map((_, i) => {
                             const angleDeg = (i / N) * 360;
                             const angleRad = (angleDeg * Math.PI) / 180;
 
                             const flatX = (i - N / 2 + 0.5) * stripWidth;
-
-                            // 뒤쪽(Z-)으로 말림 → 앞쪽에서 바라봤을 때 자연스러운 원기둥
                             const rolledZ = -radius * Math.cos(angleRad);
                             const rolledX = radius * Math.sin(angleRad);
 
@@ -221,152 +218,30 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                             const currentZ = 0 * (1 - progress) + rolledZ * progress;
                             const currentYRot = 0 * (1 - progress) + angleDeg * progress;
 
-                            const isTopCapHost = (i === topCapIndex);
-                            const isBottomCapHost = (i === bottomCapIndex);
+                            const sw = stripWidth * scale + 1; // +1px 갭 방지
 
                             return (
                                 <div key={i} style={{
                                     position: 'absolute',
-                                    width: `${stripWidth * scale + 1}px`,
-                                    height: `${height * scale}px`,
-                                    left: `${(-(stripWidth * scale + 1)) / 2}px`,
-                                    top: `${(-height * scale) / 2}px`,
+                                    width: `${sw}px`,
+                                    height: `${hS}px`,
+                                    left: `${-sw / 2}px`,
+                                    top: `${-hS / 2}px`,
                                     opacity: faceOpacity,
                                     transformOrigin: '50% 50%',
                                     transform: `translate3d(${currentX * scale}px, 0px, ${currentZ * scale}px) rotateY(${currentYRot}deg)`,
-                                    transformStyle: 'preserve-3d',
-                                }}>
-                                    {/* 안쪽면 (flat일 때 보이는 면) */}
-                                    <div className="absolute inset-0" style={{
-                                        backfaceVisibility: 'hidden',
-                                        backgroundColor: insideColor,
-                                        borderTop: `1px solid ${lineColor}`,
-                                        borderBottom: `1px solid ${lineColor}`,
-                                        borderLeft: i === 0 ? `1px solid ${lineColor}` : 'none',
-                                        borderRight: (i === N - 1) ? `1px solid ${lineColor}` : (showSegments ? `1px dashed rgba(0,0,0,0.15)` : 'none'),
-                                        boxSizing: 'border-box'
-                                    }} />
-                                    {/* 겉면 (말렸을때 바깥에서 보이는 면) */}
-                                    <div className="absolute inset-0" style={{
-                                        backfaceVisibility: 'hidden',
-                                        transform: 'rotateY(180deg)',
-                                        backgroundColor: showSegments ? (i % 2 === 0 ? outsideColor : '#f8fafc') : outsideColor,
-                                        borderTop: highlightPerimeter ? '3px solid #ef4444' : `1px solid ${lineColor}`,
-                                        borderBottom: highlightPerimeter ? '3px solid #3b82f6' : `1px solid ${lineColor}`,
-                                        borderRight: i === 0 ? `1px solid ${lineColor}` : 'none',
-                                        borderLeft: (i === N - 1) ? `1px solid ${lineColor}` : (showSegments ? `1px dashed rgba(0,0,0,0.15)` : 'none'),
-                                        boxSizing: 'border-box'
-                                    }} />
-
-                                    {/* 위쪽 캡 (strip 0에 부착) */}
-                                    {isTopCapHost && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            width: `${radius * 2 * scale}px`,
-                                            height: `${radius * 2 * scale}px`,
-                                            left: `${(stripWidth * scale / 2) - (radius * scale)}px`,
-                                            top: `${-(radius * 2 * scale)}px`,
-                                            transformOrigin: '50% 100%',
-                                            transform: `rotateX(${90 * progress}deg)`,
-                                            transformStyle: 'preserve-3d'
-                                        }}>
-                                            <div className="absolute inset-0" style={{
-                                                backgroundColor: outsideColor,
-                                                border: highlightPerimeter ? `3px solid #ef4444` : `2px solid ${lineColor}`,
-                                                borderRadius: '50%',
-                                                backfaceVisibility: 'hidden',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                                                boxSizing: 'border-box'
-                                            }}>
-                                                {showSegments && (
-                                                    <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }}>
-                                                        {Array.from({ length: N }).map((_, si) => {
-                                                            const a1 = (si / N) * 2 * Math.PI;
-                                                            const a2 = ((si + 1) / N) * 2 * Math.PI;
-                                                            return (
-                                                                <polygon key={si}
-                                                                    points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
-                                                                    fill={si % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
-                                                                    stroke={lineColor} strokeWidth={0.01} strokeDasharray="0.05, 0.05"
-                                                                />
-                                                            );
-                                                        })}
-                                                    </svg>
-                                                )}
-                                            </div>
-                                            <div className="absolute inset-0" style={{
-                                                backgroundColor: insideColor,
-                                                border: `2px solid ${lineColor}`,
-                                                borderRadius: '50%',
-                                                backfaceVisibility: 'hidden',
-                                                transform: 'rotateX(180deg)',
-                                                boxSizing: 'border-box'
-                                            }} />
-                                            {actionMode === 'surface' && progress === 0 && (
-                                                <div className="absolute inset-0 flex items-center justify-center font-black text-slate-700 text-lg bg-white/50 rounded-full" style={{ transform: 'translateZ(1px)' }}>
-                                                    밑넓이 = {fmtPi(radius * radius)}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* 아래쪽 캡 (strip N/2에 부착) */}
-                                    {isBottomCapHost && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            width: `${radius * 2 * scale}px`,
-                                            height: `${radius * 2 * scale}px`,
-                                            left: `${(stripWidth * scale / 2) - (radius * scale)}px`,
-                                            top: `${height * scale}px`,
-                                            transformOrigin: '50% 0%',
-                                            transform: `rotateX(${-90 * progress}deg)`,
-                                            transformStyle: 'preserve-3d'
-                                        }}>
-                                            <div className="absolute inset-0" style={{
-                                                backgroundColor: outsideColor,
-                                                border: highlightPerimeter ? `3px solid #3b82f6` : `2px solid ${lineColor}`,
-                                                borderRadius: '50%',
-                                                backfaceVisibility: 'hidden',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                                                boxSizing: 'border-box'
-                                            }}>
-                                                {showSegments && (
-                                                    <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(90deg)' }}>
-                                                        {Array.from({ length: N }).map((_, si) => {
-                                                            const a1 = (si / N) * 2 * Math.PI;
-                                                            const a2 = ((si + 1) / N) * 2 * Math.PI;
-                                                            return (
-                                                                <polygon key={si}
-                                                                    points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
-                                                                    fill={si % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
-                                                                    stroke={lineColor} strokeWidth={0.01} strokeDasharray="0.05, 0.05"
-                                                                />
-                                                            );
-                                                        })}
-                                                    </svg>
-                                                )}
-                                            </div>
-                                            <div className="absolute inset-0" style={{
-                                                backgroundColor: insideColor,
-                                                border: `2px solid ${lineColor}`,
-                                                borderRadius: '50%',
-                                                backfaceVisibility: 'hidden',
-                                                transform: 'rotateX(180deg)',
-                                                boxSizing: 'border-box'
-                                            }} />
-                                            {actionMode === 'surface' && progress === 0 && (
-                                                <div className="absolute inset-0 flex items-center justify-center font-black text-slate-700 text-lg bg-white/50 rounded-full" style={{ transform: 'translateZ(1px)' }}>
-                                                    밑넓이 = {fmtPi(radius * radius)}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                    backgroundColor: showSegments ? (i % 2 === 0 ? outsideColor : '#f1f5f9') : outsideColor,
+                                    borderTop: highlightPerimeter ? '3px solid #ef4444' : `1px solid ${lineColor}`,
+                                    borderBottom: highlightPerimeter ? '3px solid #3b82f6' : `1px solid ${lineColor}`,
+                                    borderLeft: i === 0 ? `1px solid ${lineColor}` : (showSegments ? `1px dashed rgba(0,0,0,0.08)` : 'none'),
+                                    borderRight: (i === N - 1) ? `1px solid ${lineColor}` : 'none',
+                                    boxSizing: 'border-box',
+                                }} />
                             );
                         })}
 
-                        {/* 좌우 실루엓 모서리선 (90돀, 270도 위치) */}
-                        {progress > 0.1 && [90, 270].map((edgeAngle) => {
+                        {/* 좌우 실루엣 모서리선 */}
+                        {progress > 0.05 && [90, 270].map((edgeAngle) => {
                             const edgeRad = (edgeAngle * Math.PI) / 180;
                             const edgeFlatI = (edgeAngle / 360) * N;
                             const edgeFlatX = (edgeFlatI - N / 2 + 0.5) * stripWidth;
@@ -379,11 +254,11 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                 <div key={`edge-${edgeAngle}`} style={{
                                     position: 'absolute',
                                     width: '2px',
-                                    height: `${height * scale}px`,
+                                    height: `${hS}px`,
                                     left: '-1px',
-                                    top: `${(-height * scale) / 2}px`,
+                                    top: `${-hS / 2}px`,
                                     backgroundColor: lineColor,
-                                    opacity: Math.min(1, (progress - 0.1) * 2),
+                                    opacity: Math.min(1, progress * 2),
                                     transformOrigin: '50% 50%',
                                     transform: `translate3d(${eX * scale}px, 0px, ${eZ * scale + 1}px) rotateY(${eRot}deg)`,
                                     pointerEvents: 'none'
@@ -391,11 +266,95 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                             );
                         })}
 
+                        {/* 위쪽 캡 — 독립 위치, 중심 기준 회전 */}
+                        <div style={{
+                            position: 'absolute',
+                            width: `${rS * 2}px`,
+                            height: `${rS * 2}px`,
+                            left: `${-rS}px`,
+                            top: `${-rS}px`,
+                            opacity: faceOpacity,
+                            transformOrigin: '50% 50%',
+                            transform: `translateY(${-hS / 2 - rS * (1 - progress)}px) rotateX(${90 * progress}deg)`,
+                            transformStyle: 'preserve-3d'
+                        }}>
+                            <div className="absolute inset-0" style={{
+                                backgroundColor: outsideColor,
+                                border: highlightPerimeter ? `3px solid #ef4444` : `2px solid ${lineColor}`,
+                                borderRadius: '50%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                                boxSizing: 'border-box'
+                            }}>
+                                {showSegments && (
+                                    <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }}>
+                                        {Array.from({ length: N }).map((_, si) => {
+                                            const a1 = (si / N) * 2 * Math.PI;
+                                            const a2 = ((si + 1) / N) * 2 * Math.PI;
+                                            return (
+                                                <polygon key={si}
+                                                    points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
+                                                    fill={si % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
+                                                    stroke={lineColor} strokeWidth={0.01} strokeDasharray="0.05, 0.05"
+                                                />
+                                            );
+                                        })}
+                                    </svg>
+                                )}
+                            </div>
+                            {actionMode === 'surface' && progress === 0 && (
+                                <div className="absolute inset-0 flex items-center justify-center font-black text-slate-700 text-lg bg-white/50 rounded-full" style={{ transform: 'translateZ(1px)' }}>
+                                    밑넓이 = {fmtPi(radius * radius)}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 아래쪽 캡 — 독립 위치, 중심 기준 회전 */}
+                        <div style={{
+                            position: 'absolute',
+                            width: `${rS * 2}px`,
+                            height: `${rS * 2}px`,
+                            left: `${-rS}px`,
+                            top: `${-rS}px`,
+                            opacity: faceOpacity,
+                            transformOrigin: '50% 50%',
+                            transform: `translateY(${hS / 2 + rS * (1 - progress)}px) rotateX(${-90 * progress}deg)`,
+                            transformStyle: 'preserve-3d'
+                        }}>
+                            <div className="absolute inset-0" style={{
+                                backgroundColor: outsideColor,
+                                border: highlightPerimeter ? `3px solid #3b82f6` : `2px solid ${lineColor}`,
+                                borderRadius: '50%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                                boxSizing: 'border-box'
+                            }}>
+                                {showSegments && (
+                                    <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(90deg)' }}>
+                                        {Array.from({ length: N }).map((_, si) => {
+                                            const a1 = (si / N) * 2 * Math.PI;
+                                            const a2 = ((si + 1) / N) * 2 * Math.PI;
+                                            return (
+                                                <polygon key={si}
+                                                    points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
+                                                    fill={si % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
+                                                    stroke={lineColor} strokeWidth={0.01} strokeDasharray="0.05, 0.05"
+                                                />
+                                            );
+                                        })}
+                                    </svg>
+                                )}
+                            </div>
+                            {actionMode === 'surface' && progress === 0 && (
+                                <div className="absolute inset-0 flex items-center justify-center font-black text-slate-700 text-lg bg-white/50 rounded-full" style={{ transform: 'translateZ(1px)' }}>
+                                    밑넓이 = {fmtPi(radius * radius)}
+                                </div>
+                            )}
+                        </div>
+
                         {/* 옆넓이 공식 오버레이 */}
                         {actionMode === 'surface' && isFlat && (
                             <div style={{
-                                position: 'absolute', width: `${w * scale}px`, height: `${height * scale}px`,
-                                left: `${(-w * scale) / 2}px`, top: `${(-height * scale) / 2}px`,
+                                position: 'absolute', width: `${w * scale}px`, height: `${hS}px`,
+                                left: `${(-w * scale) / 2}px`, top: `${-hS / 2}px`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
                                 transform: 'translateZ(1px)'
                             }}>
@@ -431,16 +390,14 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                                 left: `${-stripW / 2}px`, top: `${waterCy * scale - stripH / 2}px`,
                                                 backgroundColor: waterColor, transformOrigin: '50% 50%',
                                                 transform: `translate3d(${rolledX}px, 0px, ${rolledZ}px) rotateY(${angleDeg}deg)`,
-                                                transformStyle: 'preserve-3d', backfaceVisibility: 'visible'
                                             }} />
                                         );
                                     })}
-                                    {/* 수면 */}
                                     <div style={{
                                         position: 'absolute', width: `${radius * 2 * innerScale}px`, height: `${radius * 2 * innerScale}px`,
                                         left: `${-radius * innerScale}px`, top: `${(waterCy * scale) - (waterHeight * innerScale / 2) - radius * innerScale}px`,
                                         backgroundColor: waterColor, borderRadius: '50%',
-                                        transform: `rotateX(-90deg)`, transformStyle: 'preserve-3d'
+                                        transform: `rotateX(-90deg)`,
                                     }} />
                                 </div>
                             );
@@ -455,11 +412,11 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                             let shape = null;
 
                             if (sectionType === 'horizontal') {
-                                const yy = (0.5 - prog) * height * scale;
+                                const yy = (0.5 - prog) * hS;
                                 planeTransform = `translate3d(0, ${yy}px, 0) rotateX(90deg)`;
                                 planeW = radius * 4 * scale;
                                 planeH = radius * 4 * scale;
-                                shape = <div style={{ width: radius * 2 * scale, height: radius * 2 * scale, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.4)', border: '2px solid red' }} />;
+                                shape = <div style={{ width: rS * 2, height: rS * 2, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.4)', border: '2px solid red' }} />;
                             } else if (sectionType === 'vertical') {
                                 const zz = (0.5 - prog) * radius * 2 * scale;
                                 planeTransform = `translate3d(0, 0, ${zz}px)`;
@@ -468,14 +425,14 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                 const Z = (0.5 - prog) * radius * 2;
                                 const chord = 2 * Math.sqrt(Math.max(0, radius * radius - Z * Z));
                                 if (chord > 0) {
-                                    shape = <div style={{ width: chord * scale, height: height * scale, background: 'rgba(239, 68, 68, 0.4)', border: '2px solid red' }} />;
+                                    shape = <div style={{ width: chord * scale, height: hS, background: 'rgba(239, 68, 68, 0.4)', border: '2px solid red' }} />;
                                 }
                             } else {
                                 const xx = (prog - 0.5) * radius * 2 * scale;
                                 planeTransform = `translate3d(${xx}px, 0, 0) rotateY(90deg) rotateX(45deg)`;
                                 planeW = radius * 4 * scale;
                                 planeH = height * 3 * scale;
-                                shape = <div style={{ width: radius * 2 * scale, height: (radius * 2 / Math.cos(Math.PI / 4)) * scale, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.4)', border: '2px solid red' }} />;
+                                shape = <div style={{ width: rS * 2, height: (radius * 2 / Math.cos(Math.PI / 4)) * scale, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.4)', border: '2px solid red' }} />;
                             }
 
                             return (

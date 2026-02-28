@@ -236,21 +236,21 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     transform: `translate3d(${currentX * scale}px, 0px, ${currentZ * scale}px) rotateY(${currentYRot}deg)`,
                                     transformStyle: 'preserve-3d',
                                 }}>
-                                    {/* 겉면 */}
+                                    {/* 안쪽면 (flat일 때 보이는 면) */}
                                     <div className="absolute inset-0" style={{
                                         backfaceVisibility: 'hidden',
-                                        backgroundColor: showSegments ? (i % 2 === 0 ? outsideColor : '#f8fafc') : outsideColor,
-                                        borderTop: highlightPerimeter ? '3px solid #ef4444' : `1px solid ${lineColor}`,
-                                        borderBottom: highlightPerimeter ? '3px solid #3b82f6' : `1px solid ${lineColor}`,
+                                        backgroundColor: insideColor,
+                                        borderTop: `1px solid ${lineColor}`,
+                                        borderBottom: `1px solid ${lineColor}`,
                                         borderLeft: i === 0 ? `1px solid ${lineColor}` : 'none',
                                         borderRight: (i === N - 1) ? `1px solid ${lineColor}` : (showSegments ? `1px dashed rgba(0,0,0,0.15)` : 'none'),
                                         boxSizing: 'border-box'
                                     }} />
-                                    {/* 안쪽면 */}
+                                    {/* 겉면 (말렸을때 바깥에서 보이는 면) */}
                                     <div className="absolute inset-0" style={{
                                         backfaceVisibility: 'hidden',
                                         transform: 'rotateY(180deg)',
-                                        backgroundColor: insideColor,
+                                        backgroundColor: showSegments ? (i % 2 === 0 ? outsideColor : '#f8fafc') : outsideColor,
                                         borderTop: highlightPerimeter ? '3px solid #ef4444' : `1px solid ${lineColor}`,
                                         borderBottom: highlightPerimeter ? '3px solid #3b82f6' : `1px solid ${lineColor}`,
                                         borderRight: i === 0 ? `1px solid ${lineColor}` : 'none',

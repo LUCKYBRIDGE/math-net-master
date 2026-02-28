@@ -926,7 +926,7 @@ const App: React.FC = () => {
       </header>
 
       <div ref={layoutRef} className="flex-1 overflow-hidden flex flex-row relative">
-        {activeTab === 'single' && selectedNet && (
+        {activeTab === 'single' && (selectedNet || mode === 'cylinder' || mode === 'circle') && (
           <div
             ref={controlRef}
             style={{

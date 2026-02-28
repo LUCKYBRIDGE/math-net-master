@@ -282,8 +282,9 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                         {/* 밑면 (위쪽 원) */}
                         {(() => {
                             const rotateX = -90 * progress;
+                            // Z축 보상: 경첩(벡텀엣지) 기준 회전 시 원의 중심이 Z방향으로 radius*scale*sin(p*90도) 만큼 치우침 → translateZ로 보정
+                            const zCompensation = -radius * scale * Math.sin(progress * Math.PI / 2);
 
-                            // 회전 축은 Y = -height/2,  X = 0, Z = 0
                             return (
                                 <div style={{
                                     position: 'absolute',
@@ -293,7 +294,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     top: `${(-height * scale) / 2 - (radius * 2 * scale)}px`,
                                     opacity: faceOpacity,
                                     transformOrigin: '50% 100%',
-                                    transform: `rotateX(${rotateX}deg)`,
+                                    transform: `translateZ(${zCompensation}px) rotateX(${rotateX}deg)`,
                                     transformStyle: 'preserve-3d'
                                 }}>
                                     {/* 겉면 */}
@@ -343,6 +344,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                         {/* 밑면 (아래쪽 원) */}
                         {(() => {
                             const rotateX = 90 * progress;
+                            const zCompensation = -radius * scale * Math.sin(progress * Math.PI / 2);
 
                             return (
                                 <div style={{
@@ -353,7 +355,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     top: `${(height * scale) / 2}px`,
                                     opacity: faceOpacity,
                                     transformOrigin: '50% 0%',
-                                    transform: `rotateX(${rotateX}deg)`,
+                                    transform: `translateZ(${zCompensation}px) rotateX(${rotateX}deg)`,
                                     transformStyle: 'preserve-3d'
                                 }}>
                                     {/* 겉면 */}

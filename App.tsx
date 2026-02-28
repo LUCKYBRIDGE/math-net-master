@@ -17,6 +17,8 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<'cube' | 'cuboid' | 'prism' | 'pyramid' | 'cylinder' | 'cone' | 'circle'>('cube');
   const [prismSides, setPrismSides] = useState(3); // 3~6
   const [pyramidSides, setPyramidSides] = useState(4); // 3~6
+  const [prismSubtype, setPrismSubtype] = useState<'regular' | 'right' | 'iso' | 'rect'>('regular');
+  const [pyramidSubtype, setPyramidSubtype] = useState<'regular' | 'right' | 'iso' | 'rect'>('regular');
   const [prismTriangleType, setPrismTriangleType] = useState<'30-60-90' | '45-45-90' | '60-60-60'>('60-60-60');
   const [pyramidBaseType, setPyramidBaseType] = useState<'triangle' | 'square' | 'pentagon'>('triangle');
   const [cylinderRadius, setCylinderRadius] = useState(2);
@@ -999,11 +1001,30 @@ const App: React.FC = () => {
                     <span className="text-[10px] font-bold block uppercase text-slate-500">각기둥 종류</span>
                     <div className="grid grid-cols-4 gap-1.5">
                       {[3, 4, 5, 6].map(n => (
-                        <button key={n} onClick={() => setPrismSides(n)}
+                        <button key={n} onClick={() => { setPrismSides(n); setPrismSubtype('regular'); }}
                           className={`py-2 rounded-lg text-[10px] font-black transition-all ${prismSides === n ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                         >{['삼', '사', '오', '육'][n - 3]}각기둥</button>
                       ))}
                     </div>
+                    {prismSides === 3 && (
+                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                        <span className="text-[9px] font-bold text-slate-400">삼각형 밑면 세부 모양</span>
+                        <div className="flex gap-1.5">
+                          <button onClick={() => setPrismSubtype('regular')} className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold border ${prismSubtype === 'regular' ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`}>정삼각형</button>
+                          <button onClick={() => setPrismSubtype('right')} className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold border ${prismSubtype === 'right' ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`}>직각삼각형</button>
+                          <button onClick={() => setPrismSubtype('iso')} className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold border ${prismSubtype === 'iso' ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`}>이등변삼각형</button>
+                        </div>
+                      </div>
+                    )}
+                    {prismSides === 4 && (
+                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                        <span className="text-[9px] font-bold text-slate-400">사각형 밑면 세부 모양</span>
+                        <div className="flex gap-1.5">
+                          <button onClick={() => setPrismSubtype('regular')} className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold border ${prismSubtype === 'regular' ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`}>정사각형</button>
+                          <button onClick={() => setPrismSubtype('rect')} className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold border ${prismSubtype === 'rect' ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`}>직사각형</button>
+                        </div>
+                      </div>
+                    )}
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100">
                       <div className="text-center mb-3">
                         <span className="text-lg font-black text-blue-700">{['삼', '사', '오', '육'][prismSides - 3]}각기둥</span>
@@ -1058,11 +1079,29 @@ const App: React.FC = () => {
                     <span className="text-[10px] font-bold block uppercase text-slate-500">각뿔 종류</span>
                     <div className="grid grid-cols-4 gap-1.5">
                       {[3, 4, 5, 6].map(n => (
-                        <button key={n} onClick={() => setPyramidSides(n)}
+                        <button key={n} onClick={() => { setPyramidSides(n); setPyramidSubtype('regular'); }}
                           className={`py-2 rounded-lg text-[10px] font-black transition-all ${pyramidSides === n ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                         >{['삼', '사', '오', '육'][n - 3]}각뿔</button>
                       ))}
                     </div>
+                    {pyramidSides === 3 && (
+                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                        <span className="text-[9px] font-bold text-slate-400">삼각형 밑면 세부 모양</span>
+                        <div className="flex gap-1.5">
+                          <button onClick={() => setPyramidSubtype('regular')} className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold border ${pyramidSubtype === 'regular' ? 'bg-purple-50 border-purple-200 text-purple-600' : 'bg-white border-slate-200 text-slate-500'}`}>정삼각형</button>
+                          <button onClick={() => setPyramidSubtype('right')} className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold border ${pyramidSubtype === 'right' ? 'bg-purple-50 border-purple-200 text-purple-600' : 'bg-white border-slate-200 text-slate-500'}`}>직각삼각형</button>
+                        </div>
+                      </div>
+                    )}
+                    {pyramidSides === 4 && (
+                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                        <span className="text-[9px] font-bold text-slate-400">사각형 밑면 세부 모양</span>
+                        <div className="flex gap-1.5">
+                          <button onClick={() => setPyramidSubtype('regular')} className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold border ${pyramidSubtype === 'regular' ? 'bg-purple-50 border-purple-200 text-purple-600' : 'bg-white border-slate-200 text-slate-500'}`}>정사각형</button>
+                          <button onClick={() => setPyramidSubtype('rect')} className={`flex-1 py-1 px-2 rounded-md text-[9px] font-bold border ${pyramidSubtype === 'rect' ? 'bg-purple-50 border-purple-200 text-purple-600' : 'bg-white border-slate-200 text-slate-500'}`}>직사각형</button>
+                        </div>
+                      </div>
+                    )}
                     <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100">
                       <div className="text-center mb-3">
                         <span className="text-lg font-black text-purple-700">{['삼', '사', '오', '육'][pyramidSides - 3]}각뿔</span>
@@ -1526,11 +1565,33 @@ const App: React.FC = () => {
                       const depthX = R * 0.7;
                       const depthY = R * 0.55;
 
-                      // 밑면(앞면) 꼭짓점
-                      const frontBase = Array.from({ length: n }, (_, i) => {
-                        const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
-                        return { x: cx - depthX * 0.4 + R * Math.cos(angle), y: cy + depthY * 0.3 + R * Math.sin(angle) };
-                      });
+                      // 밑면(앞면) 꼭짓점 계산
+                      let frontBase: { x: number, y: number }[] = [];
+                      if (n === 3 && prismSubtype === 'right') {
+                        frontBase = [
+                          { x: cx - R, y: cy + R * 0.5 },
+                          { x: cx + R * 0.6, y: cy + R * 0.5 },
+                          { x: cx - R, y: cy - R * 0.8 }
+                        ];
+                      } else if (n === 3 && prismSubtype === 'iso') {
+                        frontBase = [
+                          { x: cx - R * 0.9, y: cy + R * 0.5 },
+                          { x: cx + R * 0.9, y: cy + R * 0.5 },
+                          { x: cx, y: cy - R * 0.8 }
+                        ];
+                      } else if (n === 4 && prismSubtype === 'rect') {
+                        frontBase = [
+                          { x: cx - R * 1.2, y: cy + R * 0.5 },
+                          { x: cx + R * 1.2, y: cy + R * 0.5 },
+                          { x: cx + R * 1.2, y: cy - R * 0.5 },
+                          { x: cx - R * 1.2, y: cy - R * 0.5 }
+                        ];
+                      } else {
+                        frontBase = Array.from({ length: n }, (_, i) => {
+                          const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
+                          return { x: cx - depthX * 0.4 + R * Math.cos(angle), y: cy + depthY * 0.3 + R * Math.sin(angle) };
+                        });
+                      }
                       // 윗면(뒷면) 꼭짓점
                       const backTop = frontBase.map(p => ({ x: p.x + depthX, y: p.y - depthY }));
 
@@ -1623,13 +1684,29 @@ const App: React.FC = () => {
                       const R = Math.min(cW, cH) * 0.22;
 
                       // 밑면 꼭짓점 (투영 효과)
-                      const basePoints = Array.from({ length: n }, (_, i) => {
-                        const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
-                        return {
-                          x: cx + R * Math.cos(angle) * 1.05,
-                          y: cy + R * 0.35 + R * Math.sin(angle) * 0.55
-                        };
-                      });
+                      let basePoints: { x: number, y: number }[] = [];
+                      if (n === 3 && pyramidSubtype === 'right') {
+                        basePoints = [
+                          { x: cx - R, y: cy + R * 0.6 },
+                          { x: cx + R, y: cy + R * 0.6 },
+                          { x: cx - R, y: cy + R * 0.1 }
+                        ];
+                      } else if (n === 4 && pyramidSubtype === 'rect') {
+                        basePoints = [
+                          { x: cx - R * 1.2, y: cy + R * 0.6 },
+                          { x: cx + R * 1.2, y: cy + R * 0.6 },
+                          { x: cx + R * 1.2, y: cy + R * 0.1 },
+                          { x: cx - R * 1.2, y: cy + R * 0.1 }
+                        ];
+                      } else {
+                        basePoints = Array.from({ length: n }, (_, i) => {
+                          const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
+                          return {
+                            x: cx + R * Math.cos(angle) * 1.05,
+                            y: cy + R * 0.35 + R * Math.sin(angle) * 0.55
+                          };
+                        });
+                      }
                       const apex = { x: cx + R * 0.1, y: cy - R * 0.85 };
 
                       // 옆면 채우기

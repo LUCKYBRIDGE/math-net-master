@@ -907,12 +907,7 @@ const App: React.FC = () => {
             >
               원기둥
             </button>
-            <button
-              onClick={() => { setActiveTab('single'); setMode('cone'); }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cone' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
-            >
-              원뿔
-            </button>
+
             <button
               onClick={() => { setActiveTab('single'); setMode('circle'); }}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'circle' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
@@ -1027,9 +1022,31 @@ const App: React.FC = () => {
                           <div className="text-xl font-black text-amber-600">{prismSides + 2}</div>
                         </div>
                       </div>
-                      <div className="mt-3 text-[9px] text-slate-500 bg-white/70 rounded-lg p-2">
-                        <div>💡 n각기둥: 꼭짓점 = <b>2n</b>, 모서리 = <b>3n</b>, 면 = <b>n+2</b></div>
-                        <div className="mt-1">→ 밑면 {prismSides}각형 × 2 + 옆면 직사각형 × {prismSides}</div>
+                    </div>
+                    {/* 귀납적 탐구: 비교표 */}
+                    <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                      <table className="w-full text-[10px] text-center border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 border-bottom border-slate-200">
+                            <th className="py-2 border-r border-slate-200 text-slate-500 font-bold">이름</th>
+                            <th className="py-2 border-r border-slate-200 text-blue-600 font-bold">꼭짓점(2n)</th>
+                            <th className="py-2 border-r border-slate-200 text-emerald-600 font-bold">모서리(3n)</th>
+                            <th className="py-2 text-amber-600 font-bold">면(n+2)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[3, 4, 5, 6].map(n => (
+                            <tr key={n} className={`border-t border-slate-100 ${prismSides === n ? 'bg-blue-50/50' : ''}`}>
+                              <td className="py-2 border-r border-slate-200 font-black text-slate-700">{['삼', '사', '오', '육'][n - 3]}각기둥</td>
+                              <td className={`py-2 border-r border-slate-200 ${prismSides === n ? 'font-black scale-110' : ''}`}>{n * 2}</td>
+                              <td className={`py-2 border-r border-slate-200 ${prismSides === n ? 'font-black scale-110' : ''}`}>{n * 3}</td>
+                              <td className={`py-2 ${prismSides === n ? 'font-black scale-110' : ''}`}>{n + 2}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="bg-slate-50 p-2 text-center text-[9px] font-bold text-slate-600 border-t border-slate-200">
+                        한 밑면의 변의 수(n)에 따른 규칙을 찾아보세요!
                       </div>
                     </div>
                   </div>
@@ -1064,9 +1081,31 @@ const App: React.FC = () => {
                           <div className="text-xl font-black text-amber-600">{pyramidSides + 1}</div>
                         </div>
                       </div>
-                      <div className="mt-3 text-[9px] text-slate-500 bg-white/70 rounded-lg p-2">
-                        <div>💡 n각뿔: 꼭짓점 = <b>n+1</b>, 모서리 = <b>2n</b>, 면 = <b>n+1</b></div>
-                        <div className="mt-1">→ 밑면 {pyramidSides}각형 × 1 + 옆면 삼각형 × {pyramidSides}</div>
+                    </div>
+                    {/* 귀납적 탐구: 비교표 */}
+                    <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                      <table className="w-full text-[10px] text-center border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 border-bottom border-slate-200">
+                            <th className="py-2 border-r border-slate-200 text-slate-500 font-bold">이름</th>
+                            <th className="py-2 border-r border-slate-200 text-purple-600 font-bold">꼭짓점(n+1)</th>
+                            <th className="py-2 border-r border-slate-200 text-emerald-600 font-bold">모서리(2n)</th>
+                            <th className="py-2 text-amber-600 font-bold">면(n+1)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[3, 4, 5, 6].map(n => (
+                            <tr key={n} className={`border-t border-slate-100 ${pyramidSides === n ? 'bg-purple-50/50' : ''}`}>
+                              <td className="py-2 border-r border-slate-200 font-black text-slate-700">{['삼', '사', '오', '육'][n - 3]}각뿔</td>
+                              <td className={`py-2 border-r border-slate-200 ${pyramidSides === n ? 'font-black scale-110' : ''}`}>{n + 1}</td>
+                              <td className={`py-2 border-r border-slate-200 ${pyramidSides === n ? 'font-black scale-110' : ''}`}>{n * 2}</td>
+                              <td className={`py-2 ${pyramidSides === n ? 'font-black scale-110' : ''}`}>{n + 1}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="bg-slate-50 p-2 text-center text-[9px] font-bold text-slate-600 border-t border-slate-200">
+                        한 밑면의 변의 수(n)에 따른 규칙을 찾아보세요!
                       </div>
                     </div>
                   </div>
@@ -1473,9 +1512,9 @@ const App: React.FC = () => {
                     />
                   </div>
                 </div>
-              ) : (mode === 'prism' || mode === 'pyramid' || mode === 'cone') ? (
+              ) : (mode === 'prism' || mode === 'pyramid') ? (
                 <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
-                  <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+                  <div ref={workspaceRef} className="flex-1 flex items-center justify-center relative overflow-hidden">
                     {mode === 'prism' && (() => {
                       const n = prismSides;
                       const names = ['삼', '사', '오', '육'];
@@ -1483,46 +1522,93 @@ const App: React.FC = () => {
                       const cH = workspaceSize.height || 500;
                       const cx = cW / 2;
                       const cy = cH / 2;
-                      const R = Math.min(cW, cH) * 0.22;
-                      const depthOffset = R * 0.6;
+                      const R = Math.min(cW, cH) * 0.18;
+                      const depthX = R * 0.7;
+                      const depthY = R * 0.55;
 
-                      // 밑면 꼭짓점
-                      const basePoints = Array.from({ length: n }, (_, i) => {
+                      // 밑면(앞면) 꼭짓점
+                      const frontBase = Array.from({ length: n }, (_, i) => {
                         const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
-                        return { x: cx - depthOffset / 2 + R * Math.cos(angle), y: cy + R * Math.sin(angle) + depthOffset / 3 };
+                        return { x: cx - depthX * 0.4 + R * Math.cos(angle), y: cy + depthY * 0.3 + R * Math.sin(angle) };
                       });
-                      // 윗면 꼭짓점
-                      const topPoints = basePoints.map(p => ({ x: p.x + depthOffset, y: p.y - depthOffset }));
+                      // 윗면(뒷면) 꼭짓점
+                      const backTop = frontBase.map(p => ({ x: p.x + depthX, y: p.y - depthY }));
+
+                      // 옆면 채우기 (각 옆면을 사각형으로)
+                      const sideFaceColors = [
+                        'rgba(251, 146, 60, 0.15)', 'rgba(52, 211, 153, 0.15)',
+                        'rgba(129, 140, 248, 0.15)', 'rgba(251, 191, 36, 0.15)',
+                        'rgba(244, 114, 182, 0.15)', 'rgba(34, 211, 238, 0.15)'
+                      ];
+                      // 뒷면 모서리 판단: cx 기준으로 왼쪽 절반은 뒷면
+                      const isBackEdge = (i: number) => {
+                        const mid = (frontBase[i].x + frontBase[(i + 1) % n].x) / 2;
+                        return mid < cx - depthX * 0.2;
+                      };
 
                       return (
                         <svg width={cW} height={cH} className="absolute inset-0">
+                          {/* 옆면 채우기 */}
+                          {frontBase.map((bp, i) => {
+                            const ni = (i + 1) % n;
+                            const pts = `${bp.x},${bp.y} ${frontBase[ni].x},${frontBase[ni].y} ${backTop[ni].x},${backTop[ni].y} ${backTop[i].x},${backTop[i].y}`;
+                            return <polygon key={`sf-${i}`} points={pts} fill={sideFaceColors[i % 6]} stroke="none" />;
+                          })}
                           {/* 밑면 */}
-                          <polygon points={basePoints.map(p => `${p.x},${p.y}`).join(' ')}
-                            fill="rgba(59,130,246,0.08)" stroke="#334155" strokeWidth="2" />
+                          <polygon points={frontBase.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="rgba(59,130,246,0.12)" stroke="#334155" strokeWidth="2.5" />
                           {/* 윗면 */}
-                          <polygon points={topPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                            fill="rgba(59,130,246,0.15)" stroke="#334155" strokeWidth="2" />
-                          {/* 옆면 모서리 */}
-                          {basePoints.map((bp, i) => (
-                            <line key={`side-${i}`} x1={bp.x} y1={bp.y} x2={topPoints[i].x} y2={topPoints[i].y}
-                              stroke="#334155" strokeWidth="1.5" />
+                          <polygon points={backTop.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="rgba(59,130,246,0.2)" stroke="#334155" strokeWidth="2.5" />
+
+                          {/* 밑면 모서리 (빨간 굴기) */}
+                          {frontBase.map((bp, i) => {
+                            const ni = (i + 1) % n;
+                            return <line key={`be-${i}`} x1={bp.x} y1={bp.y} x2={frontBase[ni].x} y2={frontBase[ni].y}
+                              stroke="#ef4444" strokeWidth="2.5" strokeDasharray={isBackEdge(i) ? '6 4' : 'none'} />;
+                          })}
+                          {/* 윗면 모서리 (파란 굴기) */}
+                          {backTop.map((tp, i) => {
+                            const ni = (i + 1) % n;
+                            return <line key={`te-${i}`} x1={tp.x} y1={tp.y} x2={backTop[ni].x} y2={backTop[ni].y}
+                              stroke="#3b82f6" strokeWidth="2.5" />;
+                          })}
+                          {/* 옆면 모서리 (초록 굴기) */}
+                          {frontBase.map((bp, i) => (
+                            <line key={`se-${i}`} x1={bp.x} y1={bp.y} x2={backTop[i].x} y2={backTop[i].y}
+                              stroke="#059669" strokeWidth="2"
+                              strokeDasharray={bp.x < cx - depthX * 0.5 ? '6 4' : 'none'} />
                           ))}
-                          {/* 꼭짓점 점 */}
-                          {[...basePoints, ...topPoints].map((p, i) => (
-                            <circle key={`v-${i}`} cx={p.x} cy={p.y} r="5" fill="#3b82f6" stroke="white" strokeWidth="2" />
+
+                          {/* 꼭짓점 + 번호 */}
+                          {frontBase.map((p, i) => (
+                            <g key={`vb-${i}`}>
+                              <circle cx={p.x} cy={p.y} r="7" fill="#ef4444" stroke="white" strokeWidth="2" />
+                              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="9" fontWeight="900" fill="white">{String.fromCharCode(65 + i)}</text>
+                            </g>
                           ))}
-                          {/* 모서리 수 / 꼭짓점 수 표시 */}
-                          <text x={cx} y={40} textAnchor="middle" fontSize="20" fontWeight="900" fill="#1e293b">
+                          {backTop.map((p, i) => (
+                            <g key={`vt-${i}`}>
+                              <circle cx={p.x} cy={p.y} r="7" fill="#3b82f6" stroke="white" strokeWidth="2" />
+                              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="9" fontWeight="900" fill="white">{String.fromCharCode(65 + i)}'</text>
+                            </g>
+                          ))}
+
+                          {/* 제목 */}
+                          <text x={cx} y={35} textAnchor="middle" fontSize="22" fontWeight="900" fill="#1e293b">
                             {names[n - 3]}각기둥
                           </text>
-                          <text x={cx - 120} y={cy + R + 50} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#3b82f6">
-                            꼭짓점: {n * 2}개
-                          </text>
-                          <text x={cx} y={cy + R + 50} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#059669">
-                            모서리: {n * 3}개
-                          </text>
-                          <text x={cx + 120} y={cy + R + 50} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#d97706">
-                            면: {n + 2}개
+
+                          {/* 하단 정보 박스 */}
+                          <rect x={cx - 200} y={cH - 75} width="400" height="55" rx="14" fill="white" stroke="#e2e8f0" strokeWidth="1" />
+                          <circle cx={cx - 155} cy={cH - 52} r="6" fill="#ef4444" />
+                          <text x={cx - 143} y={cH - 47} fontSize="12" fontWeight="bold" fill="#334155">꼭짓점: {n * 2}개</text>
+                          <circle cx={cx - 40} cy={cH - 52} r="6" fill="#059669" />
+                          <text x={cx - 28} y={cH - 47} fontSize="12" fontWeight="bold" fill="#334155">모서리: {n * 3}개</text>
+                          <circle cx={cx + 85} cy={cH - 52} r="6" fill="#d97706" />
+                          <text x={cx + 97} y={cH - 47} fontSize="12" fontWeight="bold" fill="#334155">면: {n + 2}개</text>
+                          <text x={cx} y={cH - 28} textAnchor="middle" fontSize="10" fill="#94a3b8">
+                            밑면 모서리(빨강) {n}개 + 윗면 모서리(파랑) {n}개 + 옆면 모서리(초록) {n}개 = 총 {n * 3}개
                           </text>
                         </svg>
                       );
@@ -1534,55 +1620,90 @@ const App: React.FC = () => {
                       const cH = workspaceSize.height || 500;
                       const cx = cW / 2;
                       const cy = cH / 2;
-                      const R = Math.min(cW, cH) * 0.25;
+                      const R = Math.min(cW, cH) * 0.22;
 
-                      // 밑면 꼭짓점 (약간 아래에)
+                      // 밑면 꼭짓점 (투영 효과)
                       const basePoints = Array.from({ length: n }, (_, i) => {
                         const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
-                        return { x: cx + R * Math.cos(angle) * 0.9, y: cy + R * 0.4 + R * Math.sin(angle) * 0.5 };
+                        return {
+                          x: cx + R * Math.cos(angle) * 1.05,
+                          y: cy + R * 0.35 + R * Math.sin(angle) * 0.55
+                        };
                       });
-                      // 꼭대기 (위쪽 중앙)
-                      const apex = { x: cx, y: cy - R * 0.8 };
+                      const apex = { x: cx + R * 0.1, y: cy - R * 0.85 };
+
+                      // 옆면 채우기
+                      const sideFaceColors = [
+                        'rgba(251, 146, 60, 0.12)', 'rgba(52, 211, 153, 0.12)',
+                        'rgba(129, 140, 248, 0.12)', 'rgba(251, 191, 36, 0.12)',
+                        'rgba(244, 114, 182, 0.12)', 'rgba(34, 211, 238, 0.12)'
+                      ];
+                      const isBackSideEdge = (i: number) => {
+                        return basePoints[i].x < cx - R * 0.3 && n > 3;
+                      };
+                      const isBackBaseEdge = (i: number) => {
+                        const mid = (basePoints[i].x + basePoints[(i + 1) % n].x) / 2;
+                        return mid < cx - R * 0.2 && n > 3;
+                      };
 
                       return (
                         <svg width={cW} height={cH} className="absolute inset-0">
+                          {/* 옆면 삼각형 채우기 */}
+                          {basePoints.map((bp, i) => {
+                            const ni = (i + 1) % n;
+                            const pts = `${bp.x},${bp.y} ${basePoints[ni].x},${basePoints[ni].y} ${apex.x},${apex.y}`;
+                            return <polygon key={`sf-${i}`} points={pts} fill={sideFaceColors[i % 6]} stroke="none" />;
+                          })}
                           {/* 밑면 */}
                           <polygon points={basePoints.map(p => `${p.x},${p.y}`).join(' ')}
-                            fill="rgba(147,51,234,0.08)" stroke="#334155" strokeWidth="2" />
-                          {/* 옆면 모서리 */}
+                            fill="rgba(147,51,234,0.1)" stroke="#334155" strokeWidth="2" />
+
+                          {/* 밑면 모서리 (빨간) */}
+                          {basePoints.map((bp, i) => {
+                            const ni = (i + 1) % n;
+                            return <line key={`be-${i}`} x1={bp.x} y1={bp.y} x2={basePoints[ni].x} y2={basePoints[ni].y}
+                              stroke="#ef4444" strokeWidth="2.5"
+                              strokeDasharray={isBackBaseEdge(i) ? '6 4' : 'none'} />;
+                          })}
+                          {/* 옆면 모서리 (초록) */}
                           {basePoints.map((bp, i) => (
-                            <line key={`side-${i}`} x1={bp.x} y1={bp.y} x2={apex.x} y2={apex.y}
-                              stroke="#334155" strokeWidth="1.5" strokeDasharray={i >= Math.floor(n / 2) && n > 3 ? '4 4' : 'none'} />
+                            <line key={`se-${i}`} x1={bp.x} y1={bp.y} x2={apex.x} y2={apex.y}
+                              stroke="#059669" strokeWidth="2"
+                              strokeDasharray={isBackSideEdge(i) ? '6 4' : 'none'} />
                           ))}
-                          {/* 꼭짓점 점 */}
+
+                          {/* 꼭짓점 + 번호 */}
                           {basePoints.map((p, i) => (
-                            <circle key={`v-${i}`} cx={p.x} cy={p.y} r="5" fill="#9333ea" stroke="white" strokeWidth="2" />
+                            <g key={`v-${i}`}>
+                              <circle cx={p.x} cy={p.y} r="7" fill="#9333ea" stroke="white" strokeWidth="2" />
+                              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize="9" fontWeight="900" fill="white">{String.fromCharCode(65 + i)}</text>
+                            </g>
                           ))}
-                          <circle cx={apex.x} cy={apex.y} r="6" fill="#dc2626" stroke="white" strokeWidth="2" />
-                          <text x={apex.x + 12} y={apex.y + 5} fontSize="11" fontWeight="bold" fill="#dc2626">꼭짓점(꼭대기)</text>
-                          {/* 정보 */}
-                          <text x={cx} y={40} textAnchor="middle" fontSize="20" fontWeight="900" fill="#1e293b">
+                          <g>
+                            <circle cx={apex.x} cy={apex.y} r="9" fill="#dc2626" stroke="white" strokeWidth="2" />
+                            <text x={apex.x} y={apex.y + 4} textAnchor="middle" fontSize="9" fontWeight="900" fill="white">O</text>
+                          </g>
+                          <text x={apex.x + 16} y={apex.y + 5} fontSize="11" fontWeight="bold" fill="#dc2626">꼭대기 꼭짓점</text>
+
+                          {/* 제목 */}
+                          <text x={cx} y={35} textAnchor="middle" fontSize="22" fontWeight="900" fill="#1e293b">
                             {names[n - 3]}각뿔
                           </text>
-                          <text x={cx - 120} y={cy + R * 0.4 + R * 0.5 + 40} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#9333ea">
-                            꼭짓점: {n + 1}개
-                          </text>
-                          <text x={cx} y={cy + R * 0.4 + R * 0.5 + 40} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#059669">
-                            모서리: {n * 2}개
-                          </text>
-                          <text x={cx + 120} y={cy + R * 0.4 + R * 0.5 + 40} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#d97706">
-                            면: {n + 1}개
+
+                          {/* 하단 정보 박스 */}
+                          <rect x={cx - 200} y={cH - 75} width="400" height="55" rx="14" fill="white" stroke="#e2e8f0" strokeWidth="1" />
+                          <circle cx={cx - 155} cy={cH - 52} r="6" fill="#9333ea" />
+                          <text x={cx - 143} y={cH - 47} fontSize="12" fontWeight="bold" fill="#334155">꼭짓점: {n + 1}개</text>
+                          <circle cx={cx - 40} cy={cH - 52} r="6" fill="#059669" />
+                          <text x={cx - 28} y={cH - 47} fontSize="12" fontWeight="bold" fill="#334155">모서리: {n * 2}개</text>
+                          <circle cx={cx + 85} cy={cH - 52} r="6" fill="#d97706" />
+                          <text x={cx + 97} y={cH - 47} fontSize="12" fontWeight="bold" fill="#334155">면: {n + 1}개</text>
+                          <text x={cx} y={cH - 28} textAnchor="middle" fontSize="10" fill="#94a3b8">
+                            밑면 모서리(빨강) {n}개 + 옆면 모서리(초록) {n}개 = 총 {n * 2}개
                           </text>
                         </svg>
                       );
                     })()}
-                    {mode === 'cone' && (
-                      <div className="flex flex-col items-center justify-center text-slate-400">
-                        <span className="text-4xl mb-4">⚒️</span>
-                        <p className="text-2xl font-black mb-2 text-slate-600">준비 중인 입체형상입니다</p>
-                        <p className="text-sm font-medium text-slate-400">원뿔 전개도 기능은 조만간 업데이트됩니다!</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               ) : (

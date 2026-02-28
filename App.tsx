@@ -14,7 +14,9 @@ const PAINT_PALETTE = ['#ef4444', '#3b82f6', '#22c55e', '#fde047', '#a855f7', '#
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'single' | 'compare'>('single');
-  const [mode, setMode] = useState<'cube' | 'cuboid' | 'prism_tri' | 'pyramid' | 'cylinder' | 'cone' | 'circle'>('cube');
+  const [mode, setMode] = useState<'cube' | 'cuboid' | 'prism' | 'pyramid' | 'cylinder' | 'cone' | 'circle'>('cube');
+  const [prismSides, setPrismSides] = useState(3); // 3~6
+  const [pyramidSides, setPyramidSides] = useState(4); // 3~6
   const [prismTriangleType, setPrismTriangleType] = useState<'30-60-90' | '45-45-90' | '60-60-60'>('60-60-60');
   const [pyramidBaseType, setPyramidBaseType] = useState<'triangle' | 'square' | 'pentagon'>('triangle');
   const [cylinderRadius, setCylinderRadius] = useState(2);
@@ -888,10 +890,10 @@ const App: React.FC = () => {
               직육면체
             </button>
             <button
-              onClick={() => { setActiveTab('single'); setMode('prism_tri'); }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'prism_tri' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+              onClick={() => { setActiveTab('single'); setMode('prism'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'prism' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
             >
-              삼각기둥
+              각기둥
             </button>
             <button
               onClick={() => { setActiveTab('single'); setMode('pyramid'); }}
@@ -996,14 +998,39 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* 삼각기둥 설정 */}
-                {mode === 'prism_tri' && (
+                {/* 각기둥 설정 */}
+                {mode === 'prism' && (
                   <div className="space-y-3 pt-2 border-t border-slate-50">
-                    <span className="text-[10px] font-bold block uppercase text-slate-500">삼각형 밑면 모양</span>
-                    <div className="flex gap-2">
-                      <button onClick={() => setPrismTriangleType('60-60-60')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${prismTriangleType === '60-60-60' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>정삼각형</button>
-                      <button onClick={() => setPrismTriangleType('45-45-90')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${prismTriangleType === '45-45-90' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>직각이등변</button>
-                      <button onClick={() => setPrismTriangleType('30-60-90')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${prismTriangleType === '30-60-90' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>직각 (30도)</button>
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">각기둥 종류</span>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[3, 4, 5, 6].map(n => (
+                        <button key={n} onClick={() => setPrismSides(n)}
+                          className={`py-2 rounded-lg text-[10px] font-black transition-all ${prismSides === n ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                        >{['삼', '사', '오', '육'][n - 3]}각기둥</button>
+                      ))}
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100">
+                      <div className="text-center mb-3">
+                        <span className="text-lg font-black text-blue-700">{['삼', '사', '오', '육'][prismSides - 3]}각기둥</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-white rounded-xl p-2 shadow-sm">
+                          <div className="text-[9px] font-bold text-slate-400">꼭짓점</div>
+                          <div className="text-xl font-black text-blue-600">{prismSides * 2}</div>
+                        </div>
+                        <div className="bg-white rounded-xl p-2 shadow-sm">
+                          <div className="text-[9px] font-bold text-slate-400">모서리</div>
+                          <div className="text-xl font-black text-emerald-600">{prismSides * 3}</div>
+                        </div>
+                        <div className="bg-white rounded-xl p-2 shadow-sm">
+                          <div className="text-[9px] font-bold text-slate-400">면</div>
+                          <div className="text-xl font-black text-amber-600">{prismSides + 2}</div>
+                        </div>
+                      </div>
+                      <div className="mt-3 text-[9px] text-slate-500 bg-white/70 rounded-lg p-2">
+                        <div>💡 n각기둥: 꼭짓점 = <b>2n</b>, 모서리 = <b>3n</b>, 면 = <b>n+2</b></div>
+                        <div className="mt-1">→ 밑면 {prismSides}각형 × 2 + 옆면 직사각형 × {prismSides}</div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1011,11 +1038,36 @@ const App: React.FC = () => {
                 {/* 각뿔 설정 */}
                 {mode === 'pyramid' && (
                   <div className="space-y-3 pt-2 border-t border-slate-50">
-                    <span className="text-[10px] font-bold block uppercase text-slate-500">각뿔 밑면 모양</span>
-                    <div className="flex gap-2">
-                      <button onClick={() => setPyramidBaseType('triangle')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${pyramidBaseType === 'triangle' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>삼각뿔</button>
-                      <button onClick={() => setPyramidBaseType('square')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${pyramidBaseType === 'square' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>사각뿔</button>
-                      <button onClick={() => setPyramidBaseType('pentagon')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${pyramidBaseType === 'pentagon' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>오각뿔</button>
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">각뿔 종류</span>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[3, 4, 5, 6].map(n => (
+                        <button key={n} onClick={() => setPyramidSides(n)}
+                          className={`py-2 rounded-lg text-[10px] font-black transition-all ${pyramidSides === n ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                        >{['삼', '사', '오', '육'][n - 3]}각뿔</button>
+                      ))}
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100">
+                      <div className="text-center mb-3">
+                        <span className="text-lg font-black text-purple-700">{['삼', '사', '오', '육'][pyramidSides - 3]}각뿔</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-white rounded-xl p-2 shadow-sm">
+                          <div className="text-[9px] font-bold text-slate-400">꼭짓점</div>
+                          <div className="text-xl font-black text-purple-600">{pyramidSides + 1}</div>
+                        </div>
+                        <div className="bg-white rounded-xl p-2 shadow-sm">
+                          <div className="text-[9px] font-bold text-slate-400">모서리</div>
+                          <div className="text-xl font-black text-emerald-600">{pyramidSides * 2}</div>
+                        </div>
+                        <div className="bg-white rounded-xl p-2 shadow-sm">
+                          <div className="text-[9px] font-bold text-slate-400">면</div>
+                          <div className="text-xl font-black text-amber-600">{pyramidSides + 1}</div>
+                        </div>
+                      </div>
+                      <div className="mt-3 text-[9px] text-slate-500 bg-white/70 rounded-lg p-2">
+                        <div>💡 n각뿔: 꼭짓점 = <b>n+1</b>, 모서리 = <b>2n</b>, 면 = <b>n+1</b></div>
+                        <div className="mt-1">→ 밑면 {pyramidSides}각형 × 1 + 옆면 삼각형 × {pyramidSides}</div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1421,11 +1473,117 @@ const App: React.FC = () => {
                     />
                   </div>
                 </div>
-              ) : (mode === 'prism_tri' || mode === 'pyramid' || mode === 'cone') ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-300">
-                  <span className="text-4xl mb-4">⚒️</span>
-                  <p className="text-2xl font-black mb-2 text-slate-600">준비 중인 입체형상입니다</p>
-                  <p className="text-sm font-medium text-slate-400">삼각기둥, 각뿔, 원뿔 전개도 기능은 조만간 업데이트됩니다!</p>
+              ) : (mode === 'prism' || mode === 'pyramid' || mode === 'cone') ? (
+                <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
+                  <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+                    {mode === 'prism' && (() => {
+                      const n = prismSides;
+                      const names = ['삼', '사', '오', '육'];
+                      const cW = workspaceSize.width || 600;
+                      const cH = workspaceSize.height || 500;
+                      const cx = cW / 2;
+                      const cy = cH / 2;
+                      const R = Math.min(cW, cH) * 0.22;
+                      const depthOffset = R * 0.6;
+
+                      // 밑면 꼭짓점
+                      const basePoints = Array.from({ length: n }, (_, i) => {
+                        const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
+                        return { x: cx - depthOffset / 2 + R * Math.cos(angle), y: cy + R * Math.sin(angle) + depthOffset / 3 };
+                      });
+                      // 윗면 꼭짓점
+                      const topPoints = basePoints.map(p => ({ x: p.x + depthOffset, y: p.y - depthOffset }));
+
+                      return (
+                        <svg width={cW} height={cH} className="absolute inset-0">
+                          {/* 밑면 */}
+                          <polygon points={basePoints.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="rgba(59,130,246,0.08)" stroke="#334155" strokeWidth="2" />
+                          {/* 윗면 */}
+                          <polygon points={topPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="rgba(59,130,246,0.15)" stroke="#334155" strokeWidth="2" />
+                          {/* 옆면 모서리 */}
+                          {basePoints.map((bp, i) => (
+                            <line key={`side-${i}`} x1={bp.x} y1={bp.y} x2={topPoints[i].x} y2={topPoints[i].y}
+                              stroke="#334155" strokeWidth="1.5" />
+                          ))}
+                          {/* 꼭짓점 점 */}
+                          {[...basePoints, ...topPoints].map((p, i) => (
+                            <circle key={`v-${i}`} cx={p.x} cy={p.y} r="5" fill="#3b82f6" stroke="white" strokeWidth="2" />
+                          ))}
+                          {/* 모서리 수 / 꼭짓점 수 표시 */}
+                          <text x={cx} y={40} textAnchor="middle" fontSize="20" fontWeight="900" fill="#1e293b">
+                            {names[n - 3]}각기둥
+                          </text>
+                          <text x={cx - 120} y={cy + R + 50} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#3b82f6">
+                            꼭짓점: {n * 2}개
+                          </text>
+                          <text x={cx} y={cy + R + 50} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#059669">
+                            모서리: {n * 3}개
+                          </text>
+                          <text x={cx + 120} y={cy + R + 50} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#d97706">
+                            면: {n + 2}개
+                          </text>
+                        </svg>
+                      );
+                    })()}
+                    {mode === 'pyramid' && (() => {
+                      const n = pyramidSides;
+                      const names = ['삼', '사', '오', '육'];
+                      const cW = workspaceSize.width || 600;
+                      const cH = workspaceSize.height || 500;
+                      const cx = cW / 2;
+                      const cy = cH / 2;
+                      const R = Math.min(cW, cH) * 0.25;
+
+                      // 밑면 꼭짓점 (약간 아래에)
+                      const basePoints = Array.from({ length: n }, (_, i) => {
+                        const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
+                        return { x: cx + R * Math.cos(angle) * 0.9, y: cy + R * 0.4 + R * Math.sin(angle) * 0.5 };
+                      });
+                      // 꼭대기 (위쪽 중앙)
+                      const apex = { x: cx, y: cy - R * 0.8 };
+
+                      return (
+                        <svg width={cW} height={cH} className="absolute inset-0">
+                          {/* 밑면 */}
+                          <polygon points={basePoints.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="rgba(147,51,234,0.08)" stroke="#334155" strokeWidth="2" />
+                          {/* 옆면 모서리 */}
+                          {basePoints.map((bp, i) => (
+                            <line key={`side-${i}`} x1={bp.x} y1={bp.y} x2={apex.x} y2={apex.y}
+                              stroke="#334155" strokeWidth="1.5" strokeDasharray={i >= Math.floor(n / 2) && n > 3 ? '4 4' : 'none'} />
+                          ))}
+                          {/* 꼭짓점 점 */}
+                          {basePoints.map((p, i) => (
+                            <circle key={`v-${i}`} cx={p.x} cy={p.y} r="5" fill="#9333ea" stroke="white" strokeWidth="2" />
+                          ))}
+                          <circle cx={apex.x} cy={apex.y} r="6" fill="#dc2626" stroke="white" strokeWidth="2" />
+                          <text x={apex.x + 12} y={apex.y + 5} fontSize="11" fontWeight="bold" fill="#dc2626">꼭짓점(꼭대기)</text>
+                          {/* 정보 */}
+                          <text x={cx} y={40} textAnchor="middle" fontSize="20" fontWeight="900" fill="#1e293b">
+                            {names[n - 3]}각뿔
+                          </text>
+                          <text x={cx - 120} y={cy + R * 0.4 + R * 0.5 + 40} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#9333ea">
+                            꼭짓점: {n + 1}개
+                          </text>
+                          <text x={cx} y={cy + R * 0.4 + R * 0.5 + 40} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#059669">
+                            모서리: {n * 2}개
+                          </text>
+                          <text x={cx + 120} y={cy + R * 0.4 + R * 0.5 + 40} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#d97706">
+                            면: {n + 1}개
+                          </text>
+                        </svg>
+                      );
+                    })()}
+                    {mode === 'cone' && (
+                      <div className="flex flex-col items-center justify-center text-slate-400">
+                        <span className="text-4xl mb-4">⚒️</span>
+                        <p className="text-2xl font-black mb-2 text-slate-600">준비 중인 입체형상입니다</p>
+                        <p className="text-sm font-medium text-slate-400">원뿔 전개도 기능은 조만간 업데이트됩니다!</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-300">

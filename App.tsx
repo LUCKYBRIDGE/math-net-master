@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const [showEdgeMatches, setShowEdgeMatches] = useState(false);
   const [showArea, setShowArea] = useState(false);
   const [showBasePerimeter, setShowBasePerimeter] = useState(false);
+  const [basePerimeterFaceId, setBasePerimeterFaceId] = useState<number | null>(null);
   const [diceStyle, setDiceStyle] = useState<'none' | 'number' | 'dot'>('none');
   const [faceColors, setFaceColors] = useState<Record<number, string>>({});
   const [selectedPaintColor, setSelectedPaintColor] = useState<string | null>(null);
@@ -454,6 +455,7 @@ const App: React.FC = () => {
     setShowEdgeMatches(false);
     setShowArea(false);
     setShowBasePerimeter(false);
+    setBasePerimeterFaceId(null);
     setDiceStyle('none');
     if (window.innerWidth < 1024 && selectedNet) setIsSidebarOpen(false);
   }, [mode]);
@@ -519,10 +521,18 @@ const App: React.FC = () => {
 
   const handleFaceClick = (faceId: number) => {
     if (isDraggingNet.current) return;
+    if (showBasePerimeter) {
+      setBasePerimeterFaceId(faceId);
+      return;
+    }
     if (selectedPaintColor) {
       setFaceColors(prev => ({ ...prev, [faceId]: selectedPaintColor === '#ffffff' ? '' : selectedPaintColor }));
     }
   };
+
+  useEffect(() => {
+    setBasePerimeterFaceId(null);
+  }, [selectedNet]);
 
   const setQuickView = (type: 'front' | 'top' | 'side' | 'iso') => {
     setIsAnimatingRotation(true);
@@ -1031,7 +1041,7 @@ const App: React.FC = () => {
                 <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
                   <div ref={workspaceRef} onMouseDown={handleCanvasDown} onTouchStart={handleCanvasDown}
                     className={`flex-1 flex items-center justify-center relative overflow-hidden touch-none ${isCanvasInteracting ? (interactionMode === 'rotate' ? 'cursor-grabbing' : 'cursor-move') : (activeTool === 'move' ? 'cursor-move' : (selectedPaintColor ? 'cursor-copy' : 'cursor-grab'))}`}>
-                    <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} showArea={showArea} showBasePerimeter={showBasePerimeter} />
+                    <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} showArea={showArea} showBasePerimeter={showBasePerimeter} basePerimeterFaceId={basePerimeterFaceId} />
                   </div>
                 </div>
               ) : (

@@ -28,6 +28,7 @@ interface NetCanvasProps {
   animationDuration?: number;
   showArea?: boolean;
   showBasePerimeter?: boolean;
+  basePerimeterFaceId?: number | null;
 }
 
 const BASE_EDGE_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#a855f7']; // 빨, 파, 초, 보라
@@ -142,6 +143,7 @@ const PerspectiveWireframe: React.FC<{
         const fold = isFoldLine(queryDir);
         const matchId = (face.edgeMatchIds as any)?.[queryDir];
         const isMatched = showEdgeMatches && matchId !== undefined;
+        const isFullyFolded = foldProgress >= 100;
 
         let borderStyle: 'solid' | 'dashed' = 'solid';
         let weight = isFlat ? (2.0 * sw) : (1.0 * sw);
@@ -167,6 +169,12 @@ const PerspectiveWireframe: React.FC<{
             // 테두리는 굵게, 접는 선은 중간 굵기로 표현
             weight = fold ? (1.5 * sw) : (3.5 * sw);
             color = fold ? linePalette.fold : linePalette.solid;
+          } else if (isFullyFolded) {
+            // 접기 모션이 완전히 끝난 후에는 투시 상황과 관계없이 외곽선을 모두 실선으로 그려서
+            // 점선이 겹쳐 보이는 현상을 방지
+            borderStyle = 'solid';
+            weight = isInward ? (1.5 * sw) : (1.2 * sw);
+            color = linePalette.solid;
           } else {
             borderStyle = isInward ? 'solid' : 'dashed';
             weight = isInward ? (1.2 * sw) : (1.0 * sw);
@@ -265,18 +273,19 @@ const FoldableFace: React.FC<{
   };
   showArea?: boolean;
   showBasePerimeter?: boolean;
-  baseFaceId?: number;
   baseEdgeConfig?: Record<number, string>; // matchId -> color
+  baseFaceSideId?: number; // 밑면의 sideId (평행한 면을 찾기 위함)
 }> = ({
   face, allFaces, scale, foldAngle, faceOpacity,
   interactive, isFlat, activeParallelPairs,
-  faceColors, onFaceClick, isPaintingMode, showEdgeMatches, foldProgress, diceStyle, linePalette, showArea, showBasePerimeter, baseFaceId, baseEdgeConfig
+  faceColors, onFaceClick, isPaintingMode, showEdgeMatches, foldProgress, diceStyle, linePalette, showArea, showBasePerimeter, baseFaceId, baseEdgeConfig, baseFaceSideId
 }) => {
     const children = allFaces.filter(f => f.parentId === face.id);
 
     let bgFill = faceColors?.[face.id];
-    if (showBasePerimeter && face.id === baseFaceId) {
-      bgFill = '#fef08a'; // 밑면은 연노랑색 강조
+    // 밑면 둘레 증명 모드일 때: 내가 기준 밑면이거나 나와 마주보는 밑면(평행면)일 때 노란색 처리
+    if (showBasePerimeter && (face.id === baseFaceId || (baseFaceSideId !== undefined && face.sideId !== undefined && Math.floor(face.sideId / 2) === Math.floor(baseFaceSideId / 2)))) {
+      bgFill = '#fef08a'; // 밑면과 그 평행면은 연노랑색 강조
     } else if (!bgFill && activeParallelPairs && face.sideId !== undefined) {
       const pairId = Math.floor(face.sideId / 2);
       if (activeParallelPairs.has(pairId)) {
@@ -363,7 +372,7 @@ const FoldableFace: React.FC<{
               transformOrigin: origin, transform: transform, transformStyle: 'preserve-3d',
               transition: isFlat ? 'none' : 'transform 0.1s linear', ...pos
             }}>
-              <FoldableFace face={child} allFaces={allFaces} scale={scale} foldAngle={foldAngle} faceOpacity={faceOpacity} interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs} faceColors={faceColors} onFaceClick={onFaceClick} isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches} foldProgress={foldProgress} diceStyle={diceStyle} linePalette={linePalette} showArea={showArea} showBasePerimeter={showBasePerimeter} baseFaceId={baseFaceId} baseEdgeConfig={baseEdgeConfig} />
+              <FoldableFace face={child} allFaces={allFaces} scale={scale} foldAngle={foldAngle} faceOpacity={faceOpacity} interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs} faceColors={faceColors} onFaceClick={onFaceClick} isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches} foldProgress={foldProgress} diceStyle={diceStyle} linePalette={linePalette} showArea={showArea} showBasePerimeter={showBasePerimeter} baseFaceId={baseFaceId} baseEdgeConfig={baseEdgeConfig} baseFaceSideId={baseFaceSideId} />
             </div>
           );
         })}
@@ -385,7 +394,8 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   diceStyle = 'none',
   animationDuration = 1.5,
   showArea = false,
-  showBasePerimeter = false
+  showBasePerimeter = false,
+  basePerimeterFaceId = null
 }) => {
   const isFlat = foldProgress === 0;
   const faceOpacity = 1 - transparency;
@@ -410,11 +420,14 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
 
   // Base Edge 매칭 준비 작업
   let baseFaceId: number | undefined;
+  let baseFaceSideId: number | undefined;
   let baseEdgeConfig: Record<number, string> = {};
+  let bFace: Face | undefined;
   if (showBasePerimeter && net.faces.length > 0) {
-    // 전개도 상에서 가장 가운데 있거나 0번인 면을 밑면으로 잡음
-    baseFaceId = 0;
-    const bFace = net.faces.find(f => f.id === baseFaceId);
+    // 사용자가 선택한 밑면이 없으면 가장 안쪽(0번) 면을 기본 밑면으로 잡음
+    baseFaceId = basePerimeterFaceId !== null && basePerimeterFaceId !== undefined ? basePerimeterFaceId : net.faces[0].id;
+    bFace = net.faces.find(f => f.id === baseFaceId);
+    baseFaceSideId = bFace?.sideId;
     if (bFace && bFace.edgeMatchIds) {
       (['up', 'right', 'down', 'left'] as Direction[]).forEach((dir, i) => {
         const matchId = (bFace.edgeMatchIds as any)[dir];
@@ -469,11 +482,35 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
                 showBasePerimeter={showBasePerimeter}
                 baseFaceId={baseFaceId}
                 baseEdgeConfig={baseEdgeConfig}
+                baseFaceSideId={baseFaceSideId}
               />
             </div>
           )}
         </div>
       </div>
+
+      {showBasePerimeter && bFace && (
+        <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-4 sm:px-6 py-4 rounded-3xl shadow-2xl border-2 border-amber-300 z-50 pointer-events-none flex flex-col items-center gap-2 min-w-max transition-opacity duration-300">
+          <span className="font-black text-amber-700 text-xs sm:text-sm mb-1 px-3 py-1 bg-amber-100 rounded-full inline-block shadow-sm tracking-tight">밑면 둘레 증명 모드</span>
+
+          <div className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-black bg-slate-50 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl border border-slate-200 shadow-inner">
+            <span className="text-slate-700 mr-1 sm:mr-2 text-sm sm:text-base font-bold whitespace-nowrap">밑면 둘레 =</span>
+            <span className="text-red-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(239,68,68,0.2)' }}>{bFace.width}</span>
+            <span className="text-slate-300 text-lg sm:text-xl font-medium">+</span>
+            <span className="text-blue-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(59,130,246,0.2)' }}>{bFace.height}</span>
+            <span className="text-slate-300 text-lg sm:text-xl font-medium">+</span>
+            <span className="text-green-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(34,197,94,0.2)' }}>{bFace.width}</span>
+            <span className="text-slate-300 text-lg sm:text-xl font-medium">+</span>
+            <span className="text-purple-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(168,85,247,0.2)' }}>{bFace.height}</span>
+            <span className="text-slate-800 ml-2 sm:ml-4 whitespace-nowrap min-w-[3rem] tracking-tighter">= {bFace.width * 2 + bFace.height * 2}</span>
+          </div>
+
+          <p className="text-[10px] sm:text-xs text-slate-500 mt-1 sm:mt-2 font-medium text-center leading-relaxed">
+            원하는 면을 <span className="text-amber-600 font-bold px-1 text-[11px] sm:text-sm">클릭</span>하여 새로운 밑면으로 지정해보세요!<br />
+            이 밑면의 테두리 총합이 옆면을 펼친 <span className="font-bold text-slate-700 border-b border-slate-400 pb-0.5">거대한 직사각형의 가로 길이</span>가 됩니다.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

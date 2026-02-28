@@ -1638,10 +1638,24 @@ const App: React.FC = () => {
                         'rgba(129, 140, 248, 0.15)', 'rgba(251, 191, 36, 0.15)',
                         'rgba(244, 114, 182, 0.15)', 'rgba(34, 211, 238, 0.15)'
                       ];
-                      // 뒷면 모서리 판단: cx 기준으로 왼쪽 절반은 뒷면
-                      const isBackEdge = (i: number) => {
-                        const mid = (frontBase[i].x + frontBase[(i + 1) % n].x) / 2;
-                        return mid < cx - depthX * 0.2;
+
+                      // 각기둥 가려짐(점선) 판단
+                      // Y 좌표가 작을수록(위로 갈수록) 3D 상에서 뒤쪽에 있다고 가정
+                      // 밑면 모서리의 중점 Y
+                      const isBackBaseEdge = (i: number) => {
+                        if (n === 3 && prismSubtype === 'right') return i === 0; // AB (위쪽 변)
+                        if (n === 3 && prismSubtype === 'iso') return i === 2; // CA (상단 평행)
+                        if (n === 4 && prismSubtype === 'rect') return i === 2 || i === 3; // 윗변
+                        const midY = (frontBase[i].y + frontBase[(i + 1) % n].y) / 2;
+                        return midY < cy && n > 3; // 중심보다 위에 있으면 점선
+                      };
+
+                      // 옆면 높이 모서리 점선 판단 (기둥)
+                      const isBackSideEdge = (i: number) => {
+                        if (n === 3 && prismSubtype === 'right') return i === 0 || i === 2; // 가장 깊은 곳
+                        if (n === 3 && prismSubtype === 'iso') return i === 0 || i === 2;
+                        if (n === 4 && prismSubtype === 'rect') return i === 0 || i === 3; // 가장 높은 쪽의 두 꼭짓점에서 시작하는 기둥
+                        return frontBase[i].y < cy - R * 0.2 && frontBase[i].x < cx + R * 0.2;
                       };
 
                       return (
@@ -1659,11 +1673,11 @@ const App: React.FC = () => {
                           <polygon points={backTop.map(p => `${p.x},${p.y}`).join(' ')}
                             fill="rgba(59,130,246,0.2)" stroke="#334155" strokeWidth="2.5" />
 
-                          {/* 밑면 모서리 (빨간 굴기) */}
+                          {/* 밑면 모서리 (빨간 굵기) */}
                           {frontBase.map((bp, i) => {
                             const ni = (i + 1) % n;
                             return <line key={`be-${i}`} x1={bp.x} y1={bp.y} x2={frontBase[ni].x} y2={frontBase[ni].y}
-                              stroke="#ef4444" strokeWidth="2.5" strokeDasharray={isBackEdge(i) ? '6 4' : 'none'} />;
+                              stroke="#ef4444" strokeWidth="2.5" strokeDasharray={isBackBaseEdge(i) ? '6 4' : 'none'} />;
                           })}
                           {/* 윗면 모서리 (파란 굴기) */}
                           {backTop.map((tp, i) => {
@@ -1671,11 +1685,11 @@ const App: React.FC = () => {
                             return <line key={`te-${i}`} x1={tp.x} y1={tp.y} x2={backTop[ni].x} y2={backTop[ni].y}
                               stroke="#3b82f6" strokeWidth="2.5" />;
                           })}
-                          {/* 옆면 모서리 (초록 굴기) */}
+                          {/* 옆면 높이 기둥 모서리 (초록 굵기) */}
                           {frontBase.map((bp, i) => (
                             <line key={`se-${i}`} x1={bp.x} y1={bp.y} x2={backTop[i].x} y2={backTop[i].y}
                               stroke="#059669" strokeWidth="2"
-                              strokeDasharray={bp.x < cx - depthX * 0.5 ? '6 4' : 'none'} />
+                              strokeDasharray={isBackSideEdge(i) ? '6 4' : 'none'} />
                           ))}
 
                           {/* 꼭짓점 + 번호 */}
@@ -1752,12 +1766,20 @@ const App: React.FC = () => {
                         'rgba(129, 140, 248, 0.12)', 'rgba(251, 191, 36, 0.12)',
                         'rgba(244, 114, 182, 0.12)', 'rgba(34, 211, 238, 0.12)'
                       ];
+
+                      // 각뿔 가려짐(점선) 판단
+                      // 꼭대기점(apex)으로 향하는 옆면 모서리
                       const isBackSideEdge = (i: number) => {
-                        return basePoints[i].x < cx - R * 0.3 && n > 3;
+                        if (n === 3 && pyramidSubtype === 'right') return i === 2 || i === 0;
+                        if (n === 4 && pyramidSubtype === 'rect') return i === 0 || i === 3;
+                        return basePoints[i].y < cy + R * 0.2 && n > 3; // 뒤쪽에 있는 점(y좌표가 작은 것)
                       };
+                      // 밑면 다각형 모서리
                       const isBackBaseEdge = (i: number) => {
-                        const mid = (basePoints[i].x + basePoints[(i + 1) % n].x) / 2;
-                        return mid < cx - R * 0.2 && n > 3;
+                        if (n === 3 && pyramidSubtype === 'right') return i === 2; // 직각삼각형 대각선 바로 위의 변
+                        if (n === 4 && pyramidSubtype === 'rect') return i === 2 || i === 3; // y값이 가장 작은 위쪽 변
+                        const midY = (basePoints[i].y + basePoints[(i + 1) % n].y) / 2;
+                        return midY < cy + R * 0.2 && n > 3; // 중심보다 위에 있는 밑선
                       };
 
                       return (

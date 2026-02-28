@@ -227,9 +227,9 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                             return (
                                 <div key={i} style={{
                                     position: 'absolute',
-                                    width: `${stripWidth * scale}px`,
+                                    width: `${stripWidth * scale + 1}px`,
                                     height: `${height * scale}px`,
-                                    left: `${(-stripWidth * scale) / 2}px`,
+                                    left: `${(-(stripWidth * scale + 1)) / 2}px`,
                                     top: `${(-height * scale) / 2}px`,
                                     opacity: faceOpacity,
                                     transformOrigin: '50% 50%',
@@ -362,6 +362,32 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                         </div>
                                     )}
                                 </div>
+                            );
+                        })}
+
+                        {/* 좌우 실루엓 모서리선 (90돀, 270도 위치) */}
+                        {progress > 0.1 && [90, 270].map((edgeAngle) => {
+                            const edgeRad = (edgeAngle * Math.PI) / 180;
+                            const edgeFlatI = (edgeAngle / 360) * N;
+                            const edgeFlatX = (edgeFlatI - N / 2 + 0.5) * stripWidth;
+                            const edgeRolledX = radius * Math.sin(edgeRad);
+                            const edgeRolledZ = -radius * Math.cos(edgeRad);
+                            const eX = edgeFlatX * (1 - progress) + edgeRolledX * progress;
+                            const eZ = 0 * (1 - progress) + edgeRolledZ * progress;
+                            const eRot = 0 * (1 - progress) + edgeAngle * progress;
+                            return (
+                                <div key={`edge-${edgeAngle}`} style={{
+                                    position: 'absolute',
+                                    width: '2px',
+                                    height: `${height * scale}px`,
+                                    left: '-1px',
+                                    top: `${(-height * scale) / 2}px`,
+                                    backgroundColor: lineColor,
+                                    opacity: Math.min(1, (progress - 0.1) * 2),
+                                    transformOrigin: '50% 50%',
+                                    transform: `translate3d(${eX * scale}px, 0px, ${eZ * scale + 1}px) rotateY(${eRot}deg)`,
+                                    pointerEvents: 'none'
+                                }} />
                             );
                         })}
 

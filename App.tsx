@@ -12,7 +12,7 @@ const PAINT_PALETTE = ['#ef4444', '#3b82f6', '#22c55e', '#fde047', '#a855f7', '#
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'single' | 'compare'>('single');
-  const [mode, setMode] = useState<'cube' | 'cuboid'>('cube');
+  const [mode, setMode] = useState<'cube' | 'cuboid' | 'prism_tri' | 'pyramid_tri' | 'cylinder'>('cube');
   const [cubeSize] = useState(3);
   const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [selectedNet, setSelectedNet] = useState<NetData | null>(null);
@@ -463,11 +463,11 @@ const App: React.FC = () => {
     if (window.innerWidth < 1024 && selectedNet) setIsSidebarOpen(false);
   }, [mode]);
 
-  const currentNets = useMemo(() =>
-    mode === 'cube'
-      ? generateAllNets({ l: cubeSize, w: cubeSize, h: cubeSize }, true)
-      : generateAllNets(cuboidDims, false)
-    , [mode, cubeSize, cuboidDims]);
+  const currentNets = useMemo(() => {
+    if (mode === 'cube') return generateAllNets({ l: cubeSize, w: cubeSize, h: cubeSize }, true);
+    if (mode === 'cuboid') return generateAllNets(cuboidDims, false);
+    return []; // 삼각기둥 등 아직 미구현
+  }, [mode, cubeSize, cuboidDims]);
 
   const compareLeftNets = useMemo(
     () => generateAllNets(compareLeftDims, false),
@@ -859,6 +859,24 @@ const App: React.FC = () => {
               직육면체
             </button>
             <button
+              onClick={() => { setActiveTab('single'); setMode('prism_tri'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'prism_tri' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            >
+              삼각기둥
+            </button>
+            <button
+              onClick={() => { setActiveTab('single'); setMode('pyramid_tri'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'pyramid_tri' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            >
+              삼각뿔
+            </button>
+            <button
+              onClick={() => { setActiveTab('single'); setMode('cylinder'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cylinder' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            >
+              원기둥
+            </button>
+            <button
               onClick={() => setActiveTab('compare')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'compare' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
             >
@@ -980,25 +998,29 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* 주사위 설정 */}
-                <div className="space-y-3 pt-2 border-t border-slate-50">
-                  <span className="text-[10px] font-bold block uppercase text-slate-500">주사위 눈 (합=7)</span>
-                  <div className="flex p-1 bg-slate-100 rounded-xl">
-                    <button onClick={() => setDiceStyle('none')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}>없음</button>
-                    <button onClick={() => setDiceStyle('number')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'number' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>숫자</button>
-                    <button onClick={() => setDiceStyle('dot')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'dot' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>눈</button>
+                {/* 주사위 설정 (정육면체만) */}
+                {mode === 'cube' && (
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">주사위 눈 (합=7)</span>
+                    <div className="flex p-1 bg-slate-100 rounded-xl">
+                      <button onClick={() => setDiceStyle('none')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}>없음</button>
+                      <button onClick={() => setDiceStyle('number')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'number' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>숫자</button>
+                      <button onClick={() => setDiceStyle('dot')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'dot' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>눈</button>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* 평행한 면 강조 */}
-                <div className="space-y-3 pt-2 border-t border-slate-50">
-                  <span className="text-[10px] font-bold block uppercase text-slate-500">평행한 면 (같은 색칠)</span>
-                  <div className="flex gap-2">
-                    {[0, 1, 2].map(id => (
-                      <button key={id} onClick={() => togglePair(id)} className={`flex-1 py-2 rounded-xl font-black text-[10px] border-2 transition-all ${activePairs.has(id) ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>쌍 {id + 1}</button>
-                    ))}
+                {/* 평행한 면 강조 (육면체 계열만) */}
+                {(mode === 'cube' || mode === 'cuboid') && (
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">평행한 면 (같은 색칠)</span>
+                    <div className="flex gap-2">
+                      {[0, 1, 2].map(id => (
+                        <button key={id} onClick={() => togglePair(id)} className={`flex-1 py-2 rounded-xl font-black text-[10px] border-2 transition-all ${activePairs.has(id) ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>쌍 {id + 1}</button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* 도형 분석 (모서리, 넓이) */}
                 <div className="space-y-3 pt-2 border-t border-slate-50">
@@ -1096,9 +1118,15 @@ const App: React.FC = () => {
                     <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} gridOpacity={gridOpacity} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} showArea={showArea} showBasePerimeter={showBasePerimeter} basePerimeterFaceId={basePerimeterFaceId} gridUnitValue={gridUnitValue} gridUnitType={gridUnitType} />
                   </div>
                 </div>
+              ) : (mode === 'prism_tri' || mode === 'pyramid_tri' || mode === 'cylinder') ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-300">
+                  <span className="text-4xl mb-4">⚒️</span>
+                  <p className="text-2xl font-black mb-2 text-slate-600">준비 중인 입체형상입니다</p>
+                  <p className="text-sm font-medium text-slate-400">삼각기둥, 삼각뿔, 원기둥 전개도 기능은 조만간 업데이트됩니다!</p>
+                </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-                  <p className="text-2xl font-black mb-4">학습할 전개도를 선택하세요</p>
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-300">
+                  <p className="text-2xl font-black mb-4 text-slate-500">학습할 전개도를 선택하세요</p>
                 </div>
               )
             ) : (

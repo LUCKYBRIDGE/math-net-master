@@ -21,12 +21,15 @@ const App: React.FC = () => {
   const [transparency, setTransparency] = useState(0.4);
   const [activePairs, setActivePairs] = useState<Set<number>>(new Set());
   const [showGrid, setShowGrid] = useState(true);
+  const [gridOpacity, setGridOpacity] = useState(0.5);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [showEdgeMatches, setShowEdgeMatches] = useState(false);
   const [showArea, setShowArea] = useState(false);
   const [showBasePerimeter, setShowBasePerimeter] = useState(false);
   const [basePerimeterFaceId, setBasePerimeterFaceId] = useState<number | null>(null);
+  const [gridUnitValue, setGridUnitValue] = useState(1);
+  const [gridUnitType, setGridUnitType] = useState('cm');
   const [diceStyle, setDiceStyle] = useState<'none' | 'number' | 'dot'>('none');
   const [faceColors, setFaceColors] = useState<Record<number, string>>({});
   const [selectedPaintColor, setSelectedPaintColor] = useState<string | null>(null);
@@ -955,6 +958,28 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
+                {/* 모눈종이 진하기 조절 */}
+                {showGrid && (
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold uppercase text-slate-500">모눈종이 눈금</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1.0"
+                      step="0.1"
+                      value={gridOpacity}
+                      onChange={e => setGridOpacity(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none accent-slate-600"
+                    />
+                    <div className="flex justify-between text-[8px] font-bold text-slate-400">
+                      <span>연하게</span>
+                      <span>진하게</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* 주사위 설정 */}
                 <div className="space-y-3 pt-2 border-t border-slate-50">
                   <span className="text-[10px] font-bold block uppercase text-slate-500">주사위 눈 (합=7)</span>
@@ -978,6 +1003,33 @@ const App: React.FC = () => {
                 {/* 도형 분석 (모서리, 넓이) */}
                 <div className="space-y-3 pt-2 border-t border-slate-50">
                   <span className="text-[10px] font-bold block uppercase text-slate-500">도형 분석</span>
+
+                  {/* 모눈종이 기본 단위 설정 */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap min-w-[3.5rem]">1눈금 단위</span>
+                    <div className="flex items-center p-1 bg-slate-100 rounded-xl flex-1">
+                      <button onClick={() => setGridUnitValue(prev => Math.max(1, prev - 1))} className="w-6 h-6 font-bold text-slate-600 flex items-center justify-center">-</button>
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={gridUnitValue}
+                        onChange={e => setGridUnitValue(Math.max(1, Number(e.target.value)))}
+                        className="flex-1 text-center text-[11px] font-black bg-transparent outline-none w-full"
+                      />
+                      <button onClick={() => setGridUnitValue(prev => prev + 1)} className="w-6 h-6 font-bold text-slate-600 flex items-center justify-center">+</button>
+                    </div>
+                    <select
+                      value={gridUnitType}
+                      onChange={e => setGridUnitType(e.target.value)}
+                      className="px-2 py-1.5 bg-slate-100 rounded-xl text-[11px] font-black text-slate-700 outline-none cursor-pointer border-r-[4px] border-r-transparent"
+                    >
+                      <option value="mm">mm</option>
+                      <option value="cm">cm</option>
+                      <option value="m">m</option>
+                    </select>
+                  </div>
+
                   <div className="flex gap-2">
                     <button onClick={() => setShowEdgeMatches(!showEdgeMatches)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showEdgeMatches ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-100 hover:border-green-200'}`}>
                       모서리 매칭
@@ -1041,7 +1093,7 @@ const App: React.FC = () => {
                 <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
                   <div ref={workspaceRef} onMouseDown={handleCanvasDown} onTouchStart={handleCanvasDown}
                     className={`flex-1 flex items-center justify-center relative overflow-hidden touch-none ${isCanvasInteracting ? (interactionMode === 'rotate' ? 'cursor-grabbing' : 'cursor-move') : (activeTool === 'move' ? 'cursor-move' : (selectedPaintColor ? 'cursor-copy' : 'cursor-grab'))}`}>
-                    <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} showArea={showArea} showBasePerimeter={showBasePerimeter} basePerimeterFaceId={basePerimeterFaceId} />
+                    <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} gridOpacity={gridOpacity} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} showArea={showArea} showBasePerimeter={showBasePerimeter} basePerimeterFaceId={basePerimeterFaceId} gridUnitValue={gridUnitValue} gridUnitType={gridUnitType} />
                   </div>
                 </div>
               ) : (

@@ -29,6 +29,9 @@ interface NetCanvasProps {
   showArea?: boolean;
   showBasePerimeter?: boolean;
   basePerimeterFaceId?: number | null;
+  gridOpacity?: number;
+  gridUnitValue?: number;
+  gridUnitType?: string;
 }
 
 const BASE_EDGE_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#a855f7']; // 빨, 파, 초, 보라
@@ -275,10 +278,12 @@ const FoldableFace: React.FC<{
   showBasePerimeter?: boolean;
   baseEdgeConfig?: Record<number, string>; // matchId -> color
   baseFaceSideId?: number; // 밑면의 sideId (평행한 면을 찾기 위함)
+  gridUnitValue?: number;
+  gridUnitType?: string;
 }> = ({
   face, allFaces, scale, foldAngle, faceOpacity,
   interactive, isFlat, activeParallelPairs,
-  faceColors, onFaceClick, isPaintingMode, showEdgeMatches, foldProgress, diceStyle, linePalette, showArea, showBasePerimeter, baseFaceId, baseEdgeConfig, baseFaceSideId
+  faceColors, onFaceClick, isPaintingMode, showEdgeMatches, foldProgress, diceStyle, linePalette, showArea, showBasePerimeter, baseFaceId, baseEdgeConfig, baseFaceSideId, gridUnitValue = 1, gridUnitType = 'cm'
 }) => {
     const children = allFaces.filter(f => f.parentId === face.id);
 
@@ -352,7 +357,7 @@ const FoldableFace: React.FC<{
             backfaceVisibility: 'visible',
             zIndex: 20
           }}>
-            {face.width} × {face.height} = {face.width * face.height}
+            {face.width * gridUnitValue}{gridUnitType} × {face.height * gridUnitValue}{gridUnitType} = {face.width * face.height * gridUnitValue * gridUnitValue}{gridUnitType}²
           </div>
         )}
 
@@ -372,7 +377,7 @@ const FoldableFace: React.FC<{
               transformOrigin: origin, transform: transform, transformStyle: 'preserve-3d',
               transition: isFlat ? 'none' : 'transform 0.1s linear', ...pos
             }}>
-              <FoldableFace face={child} allFaces={allFaces} scale={scale} foldAngle={foldAngle} faceOpacity={faceOpacity} interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs} faceColors={faceColors} onFaceClick={onFaceClick} isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches} foldProgress={foldProgress} diceStyle={diceStyle} linePalette={linePalette} showArea={showArea} showBasePerimeter={showBasePerimeter} baseFaceId={baseFaceId} baseEdgeConfig={baseEdgeConfig} baseFaceSideId={baseFaceSideId} />
+              <FoldableFace face={child} allFaces={allFaces} scale={scale} foldAngle={foldAngle} faceOpacity={faceOpacity} interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs} faceColors={faceColors} onFaceClick={onFaceClick} isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches} foldProgress={foldProgress} diceStyle={diceStyle} linePalette={linePalette} showArea={showArea} showBasePerimeter={showBasePerimeter} baseFaceId={baseFaceId} baseEdgeConfig={baseEdgeConfig} baseFaceSideId={baseFaceSideId} gridUnitValue={gridUnitValue} gridUnitType={gridUnitType} />
             </div>
           );
         })}
@@ -395,7 +400,10 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
   animationDuration = 1.5,
   showArea = false,
   showBasePerimeter = false,
-  basePerimeterFaceId = null
+  basePerimeterFaceId = null,
+  gridOpacity = 0.5,
+  gridUnitValue = 1,
+  gridUnitType = 'cm'
 }) => {
   const isFlat = foldProgress === 0;
   const faceOpacity = 1 - transparency;
@@ -449,10 +457,10 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: `
-              linear-gradient(to right, #e2e8f0 1px, transparent 1px),
-              linear-gradient(to bottom, #e2e8f0 1px, transparent 1px),
-              linear-gradient(to right, #cbd5e1 1px, transparent 1px),
-              linear-gradient(to bottom, #cbd5e1 1px, transparent 1px)
+              linear-gradient(to right, rgba(100, 116, 139, ${gridOpacity * 0.4}) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(100, 116, 139, ${gridOpacity * 0.4}) 1px, transparent 1px),
+              linear-gradient(to right, rgba(71, 85, 105, ${gridOpacity * 0.8}) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(71, 85, 105, ${gridOpacity * 0.8}) 1px, transparent 1px)
             `,
             backgroundSize: `${scale}px ${scale}px, ${scale}px ${scale}px, ${scale * 5}px ${scale * 5}px, ${scale * 5}px ${scale * 5}px`,
             backgroundPosition: gridBackgroundPosition
@@ -483,6 +491,8 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
                 baseFaceId={baseFaceId}
                 baseEdgeConfig={baseEdgeConfig}
                 baseFaceSideId={baseFaceSideId}
+                gridUnitValue={gridUnitValue}
+                gridUnitType={gridUnitType}
               />
             </div>
           )}
@@ -495,14 +505,14 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
 
           <div className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-black bg-slate-50 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl border border-slate-200 shadow-inner">
             <span className="text-slate-700 mr-1 sm:mr-2 text-sm sm:text-base font-bold whitespace-nowrap">밑면 둘레 =</span>
-            <span className="text-red-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(239,68,68,0.2)' }}>{bFace.width}</span>
+            <span className="text-red-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(239,68,68,0.2)' }}>{bFace.width * gridUnitValue}{gridUnitType}</span>
             <span className="text-slate-300 text-lg sm:text-xl font-medium">+</span>
-            <span className="text-blue-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(59,130,246,0.2)' }}>{bFace.height}</span>
+            <span className="text-blue-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(59,130,246,0.2)' }}>{bFace.height * gridUnitValue}{gridUnitType}</span>
             <span className="text-slate-300 text-lg sm:text-xl font-medium">+</span>
-            <span className="text-green-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(34,197,94,0.2)' }}>{bFace.width}</span>
+            <span className="text-green-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(34,197,94,0.2)' }}>{bFace.width * gridUnitValue}{gridUnitType}</span>
             <span className="text-slate-300 text-lg sm:text-xl font-medium">+</span>
-            <span className="text-purple-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(168,85,247,0.2)' }}>{bFace.height}</span>
-            <span className="text-slate-800 ml-2 sm:ml-4 whitespace-nowrap min-w-[3rem] tracking-tighter">= {bFace.width * 2 + bFace.height * 2}</span>
+            <span className="text-purple-500 whitespace-nowrap" style={{ textShadow: '0 1px 2px rgba(168,85,247,0.2)' }}>{bFace.height * gridUnitValue}{gridUnitType}</span>
+            <span className="text-slate-800 ml-2 sm:ml-4 whitespace-nowrap min-w-[3rem] tracking-tighter">= {(bFace.width * 2 + bFace.height * 2) * gridUnitValue}{gridUnitType}</span>
           </div>
 
           <p className="text-[10px] sm:text-xs text-slate-500 mt-1 sm:mt-2 font-medium text-center leading-relaxed">

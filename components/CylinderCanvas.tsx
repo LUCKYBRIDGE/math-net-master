@@ -18,6 +18,7 @@ interface CylinderCanvasProps {
     gridOpacity?: number;
     gridUnitValue?: number;
     gridUnitType?: string;
+    segments?: number;
 }
 
 export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
@@ -37,14 +38,15 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
     showGrid = true,
     gridOpacity = 0.5,
     gridUnitValue = 1,
-    gridUnitType = 'cm'
+    gridUnitType = 'cm',
+    segments = 36
 }) => {
     const isFlat = foldProgress === 0;
     const faceOpacity = 1 - transparency;
     const zShift = scale * (foldProgress / 100) * -1.5;
 
     const w = 2 * Math.PI * radius; // 옆면의 총 가로 길이
-    const N = 36; // 면 분할 개수
+    const N = Math.max(3, segments); // 면 분할 개수 (최소 3)
     const stripWidth = w / N;
 
     const sceneTransform = `translate(${panOffset.x}px, ${panOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
@@ -113,16 +115,18 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     height: `${height * scale}px`,
                                     left: `${(-stripWidth * scale) / 2}px`,
                                     top: `${(-height * scale) / 2}px`,
-                                    backgroundColor: '#ffffff',
+                                    backgroundColor: i % 2 === 0 ? '#ffffff' : '#f8fafc',
                                     opacity: faceOpacity,
                                     transformOrigin: '50% 50%',
                                     transform: `translate3d(${currentX * scale}px, 0px, ${currentZ * scale}px) rotateY(${currentYRot}deg)`,
                                     transformStyle: 'preserve-3d',
                                 }}>
+                                    {/* 조각 분할선 */}
+                                    <div className="absolute inset-0" style={{ borderRight: `1px dashed rgba(0,0,0,0.15)` }} />
                                     {/* 테두리 (위아래) */}
                                     <div className="absolute top-0 left-0 w-full" style={{ borderTop: `1px solid ${lineColor}` }} />
                                     <div className="absolute bottom-0 left-0 w-full" style={{ borderBottom: `1px solid ${lineColor}` }} />
-                                    {/* 접힌 상태에서는 세로선은 보이지 않게 하고 싶지만, 완전히 펴져있을 때는 외곽선 느낌을 줄 수 있음 */}
+                                    {/* 첫/마지막 모서리 */}
                                     {i === 0 && <div className="absolute top-0 left-0 h-full" style={{ borderLeft: `2px solid ${lineColor}` }} />}
                                     {i === N - 1 && <div className="absolute top-0 right-0 h-full" style={{ borderRight: `2px solid ${lineColor}` }} />}
                                 </div>
@@ -152,8 +156,24 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
+                                    overflow: 'hidden'
                                 }}>
-                                    {/* 겉넓이, 면적 등 표시 */}
+                                    <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }}>
+                                        {Array.from({ length: N }).map((_, i) => {
+                                            const a1 = (i / N) * 2 * Math.PI;
+                                            const a2 = ((i + 1) / N) * 2 * Math.PI;
+                                            return (
+                                                <polygon
+                                                    key={i}
+                                                    points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
+                                                    fill={i % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
+                                                    stroke={lineColor}
+                                                    strokeWidth={0.01}
+                                                    strokeDasharray="0.05, 0.05"
+                                                />
+                                            );
+                                        })}
+                                    </svg>
                                 </div>
                             );
                         })()}
@@ -180,7 +200,24 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
+                                    overflow: 'hidden'
                                 }}>
+                                    <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(90deg)' }}>
+                                        {Array.from({ length: N }).map((_, i) => {
+                                            const a1 = (i / N) * 2 * Math.PI;
+                                            const a2 = ((i + 1) / N) * 2 * Math.PI;
+                                            return (
+                                                <polygon
+                                                    key={i}
+                                                    points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
+                                                    fill={i % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
+                                                    stroke={lineColor}
+                                                    strokeWidth={0.01}
+                                                    strokeDasharray="0.05, 0.05"
+                                                />
+                                            );
+                                        })}
+                                    </svg>
                                 </div>
                             );
                         })()}

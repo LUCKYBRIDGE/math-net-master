@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [pyramidBaseType, setPyramidBaseType] = useState<'triangle' | 'square' | 'pentagon'>('triangle');
   const [cylinderRadius, setCylinderRadius] = useState(2);
   const [cylinderHeight, setCylinderHeight] = useState(4);
+  const [cylinderSegments, setCylinderSegments] = useState(36);
   const [cubeSize] = useState(3);
   const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [selectedNet, setSelectedNet] = useState<NetData | null>(null);
@@ -990,10 +991,10 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* 원기둥 크기 설정 */}
+                {/* 원기둥 크기 및 원주 분할 설정 */}
                 {mode === 'cylinder' && (
-                  <div className="space-y-2 pt-2 border-t border-slate-50">
-                    <span className="text-[10px] font-bold block uppercase text-slate-500">원기둥 크기</span>
+                  <div className="space-y-4 pt-2 border-t border-slate-50">
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">원기둥 상세 설정</span>
                     <div className="flex gap-2">
                       <div className="flex-1 bg-slate-100 rounded-xl px-3 py-2 flex flex-col items-center">
                         <span className="text-[9px] font-black text-slate-400">반지름(r)</span>
@@ -1010,6 +1011,23 @@ const App: React.FC = () => {
                           <span className="font-black text-slate-700">{cylinderHeight}</span>
                           <button onClick={() => setCylinderHeight(prev => Math.min(10, prev + 1))} className="w-5 h-5 bg-white rounded-md shadow-sm text-slate-600 font-bold leading-none">+</button>
                         </div>
+                      </div>
+                    </div>
+                    {/* 원주 분할 개수 조절 UI */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-[9px] font-black text-slate-500">원주 분할 표시 (도형 쪼개기)</span>
+                        <span className="text-[9px] font-black text-blue-600">{cylinderSegments}조각</span>
+                      </div>
+                      <div className="flex items-center p-1 bg-slate-100 rounded-xl gap-2 px-3">
+                        <input
+                          type="range"
+                          min="3"
+                          max="72"
+                          value={cylinderSegments}
+                          onChange={e => setCylinderSegments(Number(e.target.value))}
+                          className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1198,6 +1216,7 @@ const App: React.FC = () => {
                       animationDuration={animDuration}
                       gridUnitValue={gridUnitValue}
                       gridUnitType={gridUnitType}
+                      segments={cylinderSegments}
                     />
                   </div>
                 </div>

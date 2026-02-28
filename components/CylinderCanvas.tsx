@@ -23,7 +23,7 @@ interface CylinderCanvasProps {
     highlightPerimeter?: boolean;
     insideColor?: string;
     outsideColor?: string;
-    actionMode?: 'none' | 'surface' | 'volume' | 'section';
+    actionMode?: 'none' | 'surface' | 'volume' | 'section' | 'rectify';
     sectionType?: 'horizontal' | 'vertical' | 'diagonal';
 }
 
@@ -53,7 +53,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
     actionMode = 'none',
     sectionType = 'horizontal'
 }) => {
-    const actualFoldProgress = (actionMode === 'volume' || actionMode === 'section') ? 100 : foldProgress;
+    const actualFoldProgress = (actionMode === 'volume' || actionMode === 'section' || actionMode === 'rectify') ? 100 : foldProgress;
     const isFlat = actualFoldProgress === 0;
     const faceOpacity = 1 - transparency;
     const zShift = scale * (actualFoldProgress / 100) * -1.5;
@@ -118,6 +118,81 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                     </div>
                 </div>
             )}
+            {actionMode === 'rectify' && (
+                <div className="absolute top-8 text-center w-full z-10 pointer-events-none">
+                    <div className="inline-block bg-white/90 backdrop-blur-md px-6 py-4 rounded-3xl shadow-lg border border-orange-200">
+                        <div className="text-lg font-black text-slate-800">
+                            {segments}조각으로 분할 &rarr; 직사각형 (가로 = <span className="text-orange-600">원주의 ½ ({radius}&pi;)</span> , 세로 = <span className="text-green-600">반지름({radius})</span>)
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* rectify \ubaa8\ub4dc: 2D SVG\ub85c \uc6d0\uc744 \uc9c1\uc0ac\uac01\ud615\uc73c\ub85c \ubcc0\ud658 */}
+            {actionMode === 'rectify' && (() => {
+                const rp = foldProgress / 100;
+                const M = N;
+                const theta = (2 * Math.PI) / M;
+                const L = (2 * Math.PI * radius * scale) / M;
+                const rS = radius * scale;
+                const rectW = (M / 2) * L;
+                const cW = canvasSize?.width || 800;
+                const cH = canvasSize?.height || 600;
+                const svgCx = cW / 2;
+                const svgCy = cH / 2;
+
+                return (
+                    <svg width={cW} height={cH} className="absolute inset-0 z-[5] pointer-events-none" style={{ overflow: 'visible' }}>
+                        {Array.from({ length: M }).map((_, i) => {
+                            const isEven = i % 2 === 0;
+                            const startRotAngle = i * (360 / M);
+
+                            let targetRot = isEven ? 180 : 0;
+                            while (targetRot - startRotAngle > 180) targetRot -= 360;
+                            while (targetRot - startRotAngle < -180) targetRot += 360;
+
+                            const targetX = -rectW / 2 + (i * 0.5 + 0.5) * L + svgCx;
+                            const targetY = isEven ? svgCy + rS / 2 : svgCy - rS / 2;
+
+                            const curX = svgCx * (1 - rp) + targetX * rp;
+                            const curY = svgCy * (1 - rp) + targetY * rp;
+                            const curRot = startRotAngle * (1 - rp) + targetRot * rp;
+
+                            const x1 = rS * Math.sin(-theta / 2);
+                            const y1 = rS * Math.cos(-theta / 2);
+                            const x2 = rS * Math.sin(theta / 2);
+                            const y2 = rS * Math.cos(theta / 2);
+                            const d = `M 0 0 L ${x1} ${y1} A ${rS} ${rS} 0 0 0 ${x2} ${y2} Z`;
+
+                            return (
+                                <path
+                                    key={i}
+                                    d={d}
+                                    fill={isEven ? 'rgba(59, 130, 246, 0.15)' : 'rgba(251, 146, 60, 0.15)'}
+                                    stroke="#334155"
+                                    strokeWidth="1"
+                                    strokeLinejoin="round"
+                                    transform={`translate(${curX}, ${curY}) rotate(${curRot})`}
+                                />
+                            );
+                        })}
+                        {/* \uce58\uc218\uc120 */}
+                        <g style={{ opacity: Math.max(0, (rp - 0.8) * 5) }}>
+                            <line x1={svgCx - rectW / 2} y1={svgCy + rS / 2 + 25} x2={svgCx + rectW / 2} y2={svgCy + rS / 2 + 25} stroke="#ef4444" strokeWidth="2" strokeDasharray="4 4" />
+                            <text x={svgCx} y={svgCy + rS / 2 + 42} fill="#ef4444" fontSize="13" fontWeight="bold" textAnchor="middle">
+                                가로 = 원주의 ½ = {radius}π
+                            </text>
+                            <line x1={svgCx - rectW / 2 - 20} y1={svgCy - rS / 2} x2={svgCx - rectW / 2 - 20} y2={svgCy + rS / 2} stroke="#22c55e" strokeWidth="2" strokeDasharray="4 4" />
+                            <text x={svgCx - rectW / 2 - 30} y={svgCy + 4} fill="#22c55e" fontSize="13" fontWeight="bold" textAnchor="end">
+                                세로 = r({radius})
+                            </text>
+                            <text x={svgCx} y={svgCy - rS / 2 - 15} fill="#334155" fontSize="15" fontWeight="900" textAnchor="middle">
+                                넓이 = ({radius} × π) × {radius} = {radius * radius}π
+                            </text>
+                        </g>
+                    </svg>
+                );
+            })()}
 
             <div className="absolute w-0 h-0" style={{ transformStyle: 'preserve-3d' }}>
                 <div style={{
@@ -137,8 +212,6 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                             // Fold Progress에 따라 곡률 결정
                             // progress 0: 반듯하게 펴진 상태 (반지름 무한대)
                             // progress 100: 원래 반지름 r
-
-                            const progress = foldProgress / 100;
 
                             // 펼쳐졌을때의 X 위치 (-w/2 부터 w/2 까지)
                             const flatX = (i - N / 2 + 0.5) * stripWidth;
@@ -204,7 +277,6 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
 
                         {/* 밑면 (위쪽 원) */}
                         {(() => {
-                            const progress = foldProgress / 100;
                             const rotateX = -90 * progress;
 
                             // 회전 축은 Y = -height/2,  X = 0, Z = 0
@@ -266,7 +338,6 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
 
                         {/* 밑면 (아래쪽 원) */}
                         {(() => {
-                            const progress = foldProgress / 100;
                             const rotateX = 90 * progress;
 
                             return (

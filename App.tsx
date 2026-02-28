@@ -22,7 +22,7 @@ const App: React.FC = () => {
   const [cylinderSegments, setCylinderSegments] = useState(36);
   const [showCylinderSegments, setShowCylinderSegments] = useState(false);
   const [highlightPerimeter, setHighlightPerimeter] = useState(false);
-  const [cylinderActionMode, setCylinderActionMode] = useState<'none' | 'surface' | 'volume' | 'section'>('none');
+  const [cylinderActionMode, setCylinderActionMode] = useState<'none' | 'surface' | 'volume' | 'section' | 'rectify'>('none');
   const [cylinderSectionType, setCylinderSectionType] = useState<'horizontal' | 'vertical' | 'diagonal'>('horizontal');
 
   const [circleRadius, setCircleRadius] = useState(3);
@@ -1040,14 +1040,14 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    {/* 원주 분할 개수 및 겉넓이/부피/단면 UI */}
+                    {/* 원 분할 및 직사각형 변환 */}
                     <div className="space-y-3 pt-2">
                       <div className="flex gap-2 mb-2">
                         <button
                           onClick={() => setShowCylinderSegments(!showCylinderSegments)}
                           className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${showCylinderSegments ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                         >
-                          원 분할선
+                          🔪 원 분할선
                         </button>
                         <button
                           onClick={() => setHighlightPerimeter(!highlightPerimeter)}
@@ -1056,6 +1056,41 @@ const App: React.FC = () => {
                           맞닿는 선
                         </button>
                       </div>
+
+                      {/* 원 분할선이 켜졌을 때 게이지 + 분할수 표시 + 직사각형 버튼 */}
+                      {showCylinderSegments && (
+                        <div className="space-y-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-3 border border-orange-100">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] font-black text-orange-700 uppercase">원 분할 게이지</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[16px] font-black text-orange-600">{cylinderSegments}</span>
+                              <span className="text-[9px] font-black text-orange-400">조각</span>
+                            </div>
+                          </div>
+                          <input
+                            type="range"
+                            min="3"
+                            max="72"
+                            step="1"
+                            value={cylinderSegments}
+                            onChange={e => setCylinderSegments(Number(e.target.value))}
+                            className="w-full h-2 bg-orange-200 rounded-lg appearance-none accent-orange-500 cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[8px] font-bold text-orange-400">
+                            <span>적게 (3)</span>
+                            <span>빽빽하게 (72)</span>
+                          </div>
+                          <div className="text-[9px] text-orange-600 font-bold text-center mt-1">
+                            💡 분할을 많이 할수록, 조각들을 모으면 직사각형에 가까워져요!
+                          </div>
+                          <button
+                            onClick={() => setCylinderActionMode(cylinderActionMode === 'rectify' ? 'none' : 'rectify')}
+                            className={`w-full py-2 rounded-xl text-[10px] font-black transition-all ${cylinderActionMode === 'rectify' ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md' : 'bg-white text-orange-600 border border-orange-200 hover:bg-orange-50'}`}
+                          >
+                            {cylinderActionMode === 'rectify' ? '📐 직사각형 보기 켜짐' : '📐 조각 → 직사각형으로 펼치기'}
+                          </button>
+                        </div>
+                      )}
 
                       <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-200">
                         <span className="text-[10px] font-bold block uppercase text-slate-500">도형 학습 도구</span>

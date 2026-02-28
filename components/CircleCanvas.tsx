@@ -111,6 +111,40 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                 />
             )}
 
+            {/* 기본 상태: 도구 미선택 시 일반 원 표시 */}
+            {displayMode === 'none' && (
+                <svg width="100%" height="100%" className="absolute inset-0">
+                    <circle
+                        cx={centerX}
+                        cy={centerY}
+                        r={rScaled}
+                        fill="rgba(59, 130, 246, 0.08)"
+                        stroke="#334155"
+                        strokeWidth="2"
+                    />
+                    {/* 반지름 선 */}
+                    <line
+                        x1={centerX} y1={centerY}
+                        x2={centerX + rScaled} y2={centerY}
+                        stroke="#ef4444" strokeWidth="2" strokeDasharray="6 3"
+                    />
+                    <text
+                        x={centerX + rScaled / 2} y={centerY - 8}
+                        fill="#ef4444" fontSize="13" fontWeight="bold" textAnchor="middle"
+                    >
+                        r = {radius}
+                    </text>
+                    {/* 중심점 */}
+                    <circle cx={centerX} cy={centerY} r="4" fill="#334155" />
+                    <text
+                        x={centerX} y={centerY + 20}
+                        fill="#334155" fontSize="11" fontWeight="bold" textAnchor="middle"
+                    >
+                        중심
+                    </text>
+                </svg>
+            )}
+
             {displayMode === 'split' && (
                 <svg width="100%" height="100%" className="absolute inset-0">
                     {pieces.map((piece, i) => {

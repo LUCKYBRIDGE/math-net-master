@@ -13,6 +13,7 @@ interface CircleCanvasProps {
     gridOpacity?: number;
     displayMode?: 'split' | 'roll' | 'onion' | 'none';
     usePiSymbol?: boolean;
+    useSymbolNotation?: boolean;
 }
 
 export const CircleCanvas: React.FC<CircleCanvasProps> = ({
@@ -27,12 +28,14 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
     showGrid = true,
     gridOpacity = 0.5,
     displayMode = 'split',
-    usePiSymbol = false
+    usePiSymbol = false,
+    useSymbolNotation = false
 }) => {
     const N = Math.max(4, segments);
     const piLabel = usePiSymbol ? 'π' : '3.14';
     const piVal = usePiSymbol ? 'π' : (Math.PI).toFixed(2);
     const strokeW = Math.max(0.3, Math.min(1.5, 30 / N));
+    const rLabel = useSymbolNotation ? 'r' : '반지름';
     const p = foldProgress / 100;
     const rScaled = radius * scale;
     const opacity = 1 - transparency;
@@ -137,7 +140,7 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                         x={centerX + rScaled / 2} y={centerY - 8}
                         fill="#ef4444" fontSize="13" fontWeight="bold" textAnchor="middle"
                     >
-                        r = {radius}
+                        {rLabel} = {radius}
                     </text>
                     {/* 중심점 */}
                     <circle cx={centerX} cy={centerY} r="4" fill="#334155" />
@@ -201,7 +204,7 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                             x={actualLeftEdge - 40} y={centerY + 5}
                             fill="#22c55e" fontSize="14" fontWeight="bold" textAnchor="end"
                         >
-                            반지름({radius})
+                            {rLabel}({radius})
                         </text>
 
                         <text

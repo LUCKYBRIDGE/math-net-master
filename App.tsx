@@ -22,10 +22,12 @@ const App: React.FC = () => {
   const [cylinderSegments, setCylinderSegments] = useState(36);
   const [showCylinderSegments, setShowCylinderSegments] = useState(false);
   const [highlightPerimeter, setHighlightPerimeter] = useState(false);
+  const [cylinderActionMode, setCylinderActionMode] = useState<'none' | 'surface' | 'volume' | 'section'>('none');
+  const [cylinderSectionType, setCylinderSectionType] = useState<'horizontal' | 'vertical' | 'diagonal'>('horizontal');
 
   const [circleRadius, setCircleRadius] = useState(3);
   const [circleSegments, setCircleSegments] = useState(16);
-  const [showCircleSplit, setShowCircleSplit] = useState(false);
+  const [circleDisplayMode, setCircleDisplayMode] = useState<'split' | 'roll' | 'onion' | 'none'>('none');
   const [cubeSize] = useState(3);
   const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [selectedNet, setSelectedNet] = useState<NetData | null>(null);
@@ -1032,21 +1034,43 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    {/* 원주 분할 개수 조절 UI */}
+                    {/* 원주 분할 개수 및 겉넓이/부피/단면 UI */}
                     <div className="space-y-3 pt-2">
                       <div className="flex gap-2 mb-2">
                         <button
                           onClick={() => setShowCylinderSegments(!showCylinderSegments)}
                           className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${showCylinderSegments ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                         >
-                          원 분할선 표시
+                          원 분할선
                         </button>
                         <button
                           onClick={() => setHighlightPerimeter(!highlightPerimeter)}
                           className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${highlightPerimeter ? 'bg-rose-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                         >
-                          맞닿는 선 강조
+                          맞닿는 선
                         </button>
+                      </div>
+
+                      <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-200">
+                        <span className="text-[10px] font-bold block uppercase text-slate-500">도형 학습 도구</span>
+                        <div className="flex gap-2">
+                          <button onClick={() => setCylinderActionMode(cylinderActionMode === 'surface' ? 'none' : 'surface')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${cylinderActionMode === 'surface' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                            겉넓이 합산
+                          </button>
+                          <button onClick={() => setCylinderActionMode(cylinderActionMode === 'volume' ? 'none' : 'volume')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${cylinderActionMode === 'volume' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                            부피 물채우기
+                          </button>
+                          <button onClick={() => setCylinderActionMode(cylinderActionMode === 'section' ? 'none' : 'section')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${cylinderActionMode === 'section' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                            단면 자르기
+                          </button>
+                        </div>
+                        {cylinderActionMode === 'section' && (
+                          <div className="flex gap-2 mt-1">
+                            <button onClick={() => setCylinderSectionType('horizontal')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${cylinderSectionType === 'horizontal' ? 'bg-indigo-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>수평 단면</button>
+                            <button onClick={() => setCylinderSectionType('vertical')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${cylinderSectionType === 'vertical' ? 'bg-indigo-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>수직 단면</button>
+                            <button onClick={() => setCylinderSectionType('diagonal')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${cylinderSectionType === 'diagonal' ? 'bg-indigo-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>비스듬히</button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1065,16 +1089,31 @@ const App: React.FC = () => {
                       </div>
                     </div>
                     {/* 원 분할 조각 수 조절 UI */}
-                    <div className="space-y-3 pt-2">
-                      <button
-                        onClick={() => setShowCircleSplit(!showCircleSplit)}
-                        className={`w-full py-1.5 rounded-lg text-[10px] font-black transition-all ${showCircleSplit ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'} mb-2`}
-                      >
-                        {showCircleSplit ? '조각 끄기' : '도형 쪼개기 (원 넓이 증명)'}
-                      </button>
+                    <div className="space-y-3 pt-4 border-t border-slate-200">
+                      <span className="text-[10px] font-bold block uppercase text-slate-500">도형 학습 도구</span>
+                      <div className="flex flex-col gap-2 mb-2">
+                        <button
+                          onClick={() => setCircleDisplayMode(circleDisplayMode === 'split' ? 'none' : 'split')}
+                          className={`w-full py-2 rounded-lg text-[10px] font-black transition-all ${circleDisplayMode === 'split' ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                        >
+                          피자처럼 넓이 쪼개기 증명
+                        </button>
+                        <button
+                          onClick={() => setCircleDisplayMode(circleDisplayMode === 'onion' ? 'none' : 'onion')}
+                          className={`w-full py-2 rounded-lg text-[10px] font-black transition-all ${circleDisplayMode === 'onion' ? 'bg-amber-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                        >
+                          양파 껍질로 자르기 증명
+                        </button>
+                        <button
+                          onClick={() => setCircleDisplayMode(circleDisplayMode === 'roll' ? 'none' : 'roll')}
+                          className={`w-full py-2 rounded-lg text-[10px] font-black transition-all ${circleDisplayMode === 'roll' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                        >
+                          원주(원의 둘레) 굴리기 증명
+                        </button>
+                      </div>
 
-                      {showCircleSplit && (
-                        <div className="space-y-1">
+                      {circleDisplayMode === 'split' && (
+                        <div className="space-y-1 mt-2">
                           <div className="flex justify-between items-center px-1">
                             <span className="text-[9px] font-black text-slate-500">원주 조각내기 설정</span>
                             <span className="text-[9px] font-black text-blue-600">{circleSegments}조각</span>
@@ -1280,6 +1319,10 @@ const App: React.FC = () => {
                       gridUnitValue={gridUnitValue}
                       gridUnitType={gridUnitType}
                       segments={cylinderSegments}
+                      showSegments={showCylinderSegments}
+                      highlightPerimeter={highlightPerimeter}
+                      actionMode={cylinderActionMode}
+                      sectionType={cylinderSectionType}
                     />
                   </div>
                 </div>
@@ -1289,12 +1332,13 @@ const App: React.FC = () => {
                     <CircleCanvas
                       radius={circleRadius}
                       segments={circleSegments}
-                      foldProgress={foldProgress}
+                      foldProgress={circleDisplayMode !== 'none' ? foldProgress : 0}
                       scale={computedScale}
                       transparency={transparency}
                       showGrid={showGrid}
                       gridOpacity={gridOpacity}
                       canvasSize={workspaceSize}
+                      displayMode={circleDisplayMode}
                     />
                   </div>
                 </div>

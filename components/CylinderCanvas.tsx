@@ -231,9 +231,9 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     transformOrigin: '50% 50%',
                                     transform: `translate3d(${currentX * scale}px, 0px, ${currentZ * scale}px) rotateY(${currentYRot}deg)`,
                                     backgroundColor: showSegments ? (i % 2 === 0 ? outsideColor : '#f1f5f9') : outsideColor,
-                                    borderTop: highlightPerimeter ? '3px solid #ef4444' : `1px solid ${lineColor}`,
-                                    borderBottom: highlightPerimeter ? '3px solid #3b82f6' : `1px solid ${lineColor}`,
-                                    borderLeft: i === 0 ? `1px solid ${lineColor}` : (showSegments ? `1px dashed rgba(0,0,0,0.08)` : 'none'),
+                                    borderTop: progress < 0.05 ? (highlightPerimeter ? '3px solid #ef4444' : `1px solid ${lineColor}`) : 'none',
+                                    borderBottom: progress < 0.05 ? (highlightPerimeter ? '3px solid #3b82f6' : `1px solid ${lineColor}`) : 'none',
+                                    borderLeft: i === 0 ? `1px solid ${lineColor}` : (showSegments && progress < 0.05 ? `1px dashed rgba(0,0,0,0.08)` : 'none'),
                                     borderRight: (i === N - 1) ? `1px solid ${lineColor}` : 'none',
                                     boxSizing: 'border-box',
                                 }} />

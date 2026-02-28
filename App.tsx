@@ -5,6 +5,7 @@ import { Dimensions, NetData } from './types';
 import { generateAllNets } from './utils/netGenerator';
 import { NetCanvas } from './components/NetCanvas';
 import { CylinderCanvas } from './components/CylinderCanvas';
+import { CircleCanvas } from './components/CircleCanvas';
 import { CompareCanvas } from './components/CompareCanvas';
 
 const DEFAULT_ROTATION = { x: 0, y: 0 };
@@ -13,12 +14,14 @@ const PAINT_PALETTE = ['#ef4444', '#3b82f6', '#22c55e', '#fde047', '#a855f7', '#
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'single' | 'compare'>('single');
-  const [mode, setMode] = useState<'cube' | 'cuboid' | 'prism_tri' | 'pyramid' | 'cylinder' | 'cone'>('cube');
+  const [mode, setMode] = useState<'cube' | 'cuboid' | 'prism_tri' | 'pyramid' | 'cylinder' | 'cone' | 'circle'>('cube');
   const [prismTriangleType, setPrismTriangleType] = useState<'30-60-90' | '45-45-90' | '60-60-60'>('60-60-60');
   const [pyramidBaseType, setPyramidBaseType] = useState<'triangle' | 'square' | 'pentagon'>('triangle');
   const [cylinderRadius, setCylinderRadius] = useState(2);
   const [cylinderHeight, setCylinderHeight] = useState(4);
   const [cylinderSegments, setCylinderSegments] = useState(36);
+  const [circleRadius, setCircleRadius] = useState(3);
+  const [circleSegments, setCircleSegments] = useState(16);
   const [cubeSize] = useState(3);
   const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [selectedNet, setSelectedNet] = useState<NetData | null>(null);
@@ -889,6 +892,12 @@ const App: React.FC = () => {
               원뿔
             </button>
             <button
+              onClick={() => { setActiveTab('single'); setMode('circle'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'circle' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            >
+              원
+            </button>
+            <button
               onClick={() => setActiveTab('compare')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'compare' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
             >
@@ -1026,6 +1035,39 @@ const App: React.FC = () => {
                           max="72"
                           value={cylinderSegments}
                           onChange={e => setCylinderSegments(Number(e.target.value))}
+                          className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 원 설정 */}
+                {mode === 'circle' && (
+                  <div className="space-y-4 pt-2 border-t border-slate-50">
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">원 상세 설정</span>
+                    <div className="flex bg-slate-100 rounded-xl px-3 py-2 flex-col items-center">
+                      <span className="text-[9px] font-black text-slate-400">반지름(r)</span>
+                      <div className="flex items-center gap-2 mt-1 w-full justify-between">
+                        <button onClick={() => setCircleRadius(prev => Math.max(1, prev - 1))} className="w-5 h-5 bg-white rounded-md shadow-sm text-slate-600 font-bold leading-none">-</button>
+                        <span className="font-black text-slate-700">{circleRadius}</span>
+                        <button onClick={() => setCircleRadius(prev => Math.min(6, prev + 1))} className="w-5 h-5 bg-white rounded-md shadow-sm text-slate-600 font-bold leading-none">+</button>
+                      </div>
+                    </div>
+                    {/* 원 분할 조각 수 조절 UI */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-[9px] font-black text-slate-500">원주 조각내기</span>
+                        <span className="text-[9px] font-black text-blue-600">{circleSegments}조각</span>
+                      </div>
+                      <div className="flex items-center p-1 bg-slate-100 rounded-xl gap-2 px-3">
+                        <input
+                          type="range"
+                          min="4"
+                          max="80"
+                          step="4"
+                          value={circleSegments}
+                          onChange={e => setCircleSegments(Number(e.target.value))}
                           className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600"
                         />
                       </div>
@@ -1217,6 +1259,21 @@ const App: React.FC = () => {
                       gridUnitValue={gridUnitValue}
                       gridUnitType={gridUnitType}
                       segments={cylinderSegments}
+                    />
+                  </div>
+                </div>
+              ) : mode === 'circle' ? (
+                <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
+                  <div ref={workspaceRef} className="flex-1 flex items-center justify-center relative overflow-hidden touch-none">
+                    <CircleCanvas
+                      radius={circleRadius}
+                      segments={circleSegments}
+                      foldProgress={foldProgress}
+                      scale={computedScale}
+                      transparency={transparency}
+                      showGrid={showGrid}
+                      gridOpacity={gridOpacity}
+                      canvasSize={workspaceSize}
                     />
                   </div>
                 </div>

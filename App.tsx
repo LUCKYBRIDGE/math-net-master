@@ -20,8 +20,12 @@ const App: React.FC = () => {
   const [cylinderRadius, setCylinderRadius] = useState(2);
   const [cylinderHeight, setCylinderHeight] = useState(4);
   const [cylinderSegments, setCylinderSegments] = useState(36);
+  const [showCylinderSegments, setShowCylinderSegments] = useState(false);
+  const [highlightPerimeter, setHighlightPerimeter] = useState(false);
+
   const [circleRadius, setCircleRadius] = useState(3);
   const [circleSegments, setCircleSegments] = useState(16);
+  const [showCircleSplit, setShowCircleSplit] = useState(false);
   const [cubeSize] = useState(3);
   const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [selectedNet, setSelectedNet] = useState<NetData | null>(null);
@@ -469,6 +473,12 @@ const App: React.FC = () => {
     setShowBasePerimeter(false);
     setBasePerimeterFaceId(null);
     setDiceStyle('none');
+
+    // 모드(도형 탭)가 바뀔 때 육면체 계열이 아니면 명확히 null로 초기화하여 이전 렌더링 내역을 없앰
+    if (mode !== 'cube' && mode !== 'cuboid') {
+      setSelectedNet(null);
+    }
+
     if (window.innerWidth < 1024 && selectedNet) setIsSidebarOpen(false);
   }, [mode]);
 
@@ -1023,20 +1033,20 @@ const App: React.FC = () => {
                       </div>
                     </div>
                     {/* 원주 분할 개수 조절 UI */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-[9px] font-black text-slate-500">원주 분할 표시 (도형 쪼개기)</span>
-                        <span className="text-[9px] font-black text-blue-600">{cylinderSegments}조각</span>
-                      </div>
-                      <div className="flex items-center p-1 bg-slate-100 rounded-xl gap-2 px-3">
-                        <input
-                          type="range"
-                          min="3"
-                          max="72"
-                          value={cylinderSegments}
-                          onChange={e => setCylinderSegments(Number(e.target.value))}
-                          className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600"
-                        />
+                    <div className="space-y-3 pt-2">
+                      <div className="flex gap-2 mb-2">
+                        <button
+                          onClick={() => setShowCylinderSegments(!showCylinderSegments)}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${showCylinderSegments ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                        >
+                          원 분할선 표시
+                        </button>
+                        <button
+                          onClick={() => setHighlightPerimeter(!highlightPerimeter)}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${highlightPerimeter ? 'bg-rose-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                        >
+                          맞닿는 선 강조
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1055,22 +1065,33 @@ const App: React.FC = () => {
                       </div>
                     </div>
                     {/* 원 분할 조각 수 조절 UI */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-[9px] font-black text-slate-500">원주 조각내기</span>
-                        <span className="text-[9px] font-black text-blue-600">{circleSegments}조각</span>
-                      </div>
-                      <div className="flex items-center p-1 bg-slate-100 rounded-xl gap-2 px-3">
-                        <input
-                          type="range"
-                          min="4"
-                          max="80"
-                          step="4"
-                          value={circleSegments}
-                          onChange={e => setCircleSegments(Number(e.target.value))}
-                          className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600"
-                        />
-                      </div>
+                    <div className="space-y-3 pt-2">
+                      <button
+                        onClick={() => setShowCircleSplit(!showCircleSplit)}
+                        className={`w-full py-1.5 rounded-lg text-[10px] font-black transition-all ${showCircleSplit ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'} mb-2`}
+                      >
+                        {showCircleSplit ? '조각 끄기' : '도형 쪼개기 (원 넓이 증명)'}
+                      </button>
+
+                      {showCircleSplit && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center px-1">
+                            <span className="text-[9px] font-black text-slate-500">원주 조각내기 설정</span>
+                            <span className="text-[9px] font-black text-blue-600">{circleSegments}조각</span>
+                          </div>
+                          <div className="flex items-center p-1 bg-slate-100 rounded-xl gap-2 px-3">
+                            <input
+                              type="range"
+                              min="4"
+                              max="80"
+                              step="4"
+                              value={circleSegments}
+                              onChange={e => setCircleSegments(Number(e.target.value))}
+                              className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

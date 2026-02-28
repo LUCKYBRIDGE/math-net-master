@@ -19,6 +19,10 @@ interface CylinderCanvasProps {
     gridUnitValue?: number;
     gridUnitType?: string;
     segments?: number;
+    showSegments?: boolean;
+    highlightPerimeter?: boolean;
+    insideColor?: string;
+    outsideColor?: string;
 }
 
 export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
@@ -39,7 +43,11 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
     gridOpacity = 0.5,
     gridUnitValue = 1,
     gridUnitType = 'cm',
-    segments = 36
+    segments = 36,
+    showSegments = false,
+    highlightPerimeter = false,
+    insideColor = '#e2e8f0', // 안쪽면 색상 (약간 푸른빛 섞인 어두운 회색)
+    outsideColor = '#ffffff' // 겉면 색상
 }) => {
     const isFlat = foldProgress === 0;
     const faceOpacity = 1 - transparency;
@@ -115,20 +123,32 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     height: `${height * scale}px`,
                                     left: `${(-stripWidth * scale) / 2}px`,
                                     top: `${(-height * scale) / 2}px`,
-                                    backgroundColor: i % 2 === 0 ? '#ffffff' : '#f8fafc',
                                     opacity: faceOpacity,
                                     transformOrigin: '50% 50%',
                                     transform: `translate3d(${currentX * scale}px, 0px, ${currentZ * scale}px) rotateY(${currentYRot}deg)`,
                                     transformStyle: 'preserve-3d',
                                 }}>
-                                    {/* 조각 분할선 */}
-                                    <div className="absolute inset-0" style={{ borderRight: `1px dashed rgba(0,0,0,0.15)` }} />
-                                    {/* 테두리 (위아래) */}
-                                    <div className="absolute top-0 left-0 w-full" style={{ borderTop: `1px solid ${lineColor}` }} />
-                                    <div className="absolute bottom-0 left-0 w-full" style={{ borderBottom: `1px solid ${lineColor}` }} />
-                                    {/* 첫/마지막 모서리 */}
-                                    {i === 0 && <div className="absolute top-0 left-0 h-full" style={{ borderLeft: `2px solid ${lineColor}` }} />}
-                                    {i === N - 1 && <div className="absolute top-0 right-0 h-full" style={{ borderRight: `2px solid ${lineColor}` }} />}
+                                    {/* 겉면 */}
+                                    <div className="absolute inset-0" style={{
+                                        backfaceVisibility: 'hidden',
+                                        backgroundColor: showSegments ? (i % 2 === 0 ? outsideColor : '#f8fafc') : outsideColor,
+                                        borderTop: highlightPerimeter ? '3px solid #ef4444' : `1px solid ${lineColor}`,
+                                        borderBottom: highlightPerimeter ? '3px solid #3b82f6' : `1px solid ${lineColor}`,
+                                        borderLeft: i === 0 ? `1px solid ${lineColor}` : 'none',
+                                        borderRight: (i === N - 1) ? `1px solid ${lineColor}` : (showSegments ? `1px dashed rgba(0,0,0,0.15)` : 'none'),
+                                        boxSizing: 'border-box'
+                                    }} />
+                                    {/* 안쪽면 (flip) */}
+                                    <div className="absolute inset-0" style={{
+                                        backfaceVisibility: 'hidden',
+                                        transform: 'rotateY(180deg)',
+                                        backgroundColor: insideColor,
+                                        borderTop: highlightPerimeter ? '3px solid #ef4444' : `1px solid ${lineColor}`,
+                                        borderBottom: highlightPerimeter ? '3px solid #3b82f6' : `1px solid ${lineColor}`,
+                                        borderRight: i === 0 ? `1px solid ${lineColor}` : 'none',
+                                        borderLeft: (i === N - 1) ? `1px solid ${lineColor}` : (showSegments ? `1px dashed rgba(0,0,0,0.15)` : 'none'),
+                                        boxSizing: 'border-box'
+                                    }} />
                                 </div>
                             );
                         })}
@@ -146,34 +166,46 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     height: `${radius * 2 * scale}px`,
                                     left: `${(-radius * scale)}px`,
                                     top: `${(-height * scale) / 2 - (radius * 2 * scale)}px`,
-                                    backgroundColor: '#ffffff',
                                     opacity: faceOpacity,
-                                    border: `2px solid ${lineColor}`,
-                                    borderRadius: '50%',
                                     transformOrigin: '50% 100%',
                                     transform: `rotateX(${rotateX}deg)`,
-                                    transformStyle: 'preserve-3d',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    overflow: 'hidden'
+                                    transformStyle: 'preserve-3d'
                                 }}>
-                                    <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }}>
-                                        {Array.from({ length: N }).map((_, i) => {
-                                            const a1 = (i / N) * 2 * Math.PI;
-                                            const a2 = ((i + 1) / N) * 2 * Math.PI;
-                                            return (
-                                                <polygon
-                                                    key={i}
-                                                    points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
-                                                    fill={i % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
-                                                    stroke={lineColor}
-                                                    strokeWidth={0.01}
-                                                    strokeDasharray="0.05, 0.05"
-                                                />
-                                            );
-                                        })}
-                                    </svg>
+                                    {/* 겉면 */}
+                                    <div className="absolute inset-0" style={{
+                                        backgroundColor: outsideColor,
+                                        border: highlightPerimeter ? `3px solid #ef4444` : `2px solid ${lineColor}`,
+                                        borderRadius: '50%',
+                                        backfaceVisibility: 'hidden',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                                        boxSizing: 'border-box'
+                                    }}>
+                                        {showSegments && (
+                                            <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }}>
+                                                {Array.from({ length: N }).map((_, i) => {
+                                                    const a1 = (i / N) * 2 * Math.PI;
+                                                    const a2 = ((i + 1) / N) * 2 * Math.PI;
+                                                    return (
+                                                        <polygon
+                                                            key={i}
+                                                            points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
+                                                            fill={i % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
+                                                            stroke={lineColor} strokeWidth={0.01} strokeDasharray="0.05, 0.05"
+                                                        />
+                                                    );
+                                                })}
+                                            </svg>
+                                        )}
+                                    </div>
+                                    {/* 안쪽면 */}
+                                    <div className="absolute inset-0" style={{
+                                        backgroundColor: insideColor,
+                                        border: highlightPerimeter ? `3px solid #ef4444` : `2px solid ${lineColor}`,
+                                        borderRadius: '50%',
+                                        backfaceVisibility: 'hidden',
+                                        transform: 'rotateX(180deg)',
+                                        boxSizing: 'border-box'
+                                    }} />
                                 </div>
                             );
                         })()}
@@ -190,34 +222,46 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     height: `${radius * 2 * scale}px`,
                                     left: `${(-radius * scale)}px`,
                                     top: `${(height * scale) / 2}px`,
-                                    backgroundColor: '#ffffff',
                                     opacity: faceOpacity,
-                                    border: `2px solid ${lineColor}`,
-                                    borderRadius: '50%',
                                     transformOrigin: '50% 0%',
                                     transform: `rotateX(${rotateX}deg)`,
-                                    transformStyle: 'preserve-3d',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    overflow: 'hidden'
+                                    transformStyle: 'preserve-3d'
                                 }}>
-                                    <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(90deg)' }}>
-                                        {Array.from({ length: N }).map((_, i) => {
-                                            const a1 = (i / N) * 2 * Math.PI;
-                                            const a2 = ((i + 1) / N) * 2 * Math.PI;
-                                            return (
-                                                <polygon
-                                                    key={i}
-                                                    points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
-                                                    fill={i % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
-                                                    stroke={lineColor}
-                                                    strokeWidth={0.01}
-                                                    strokeDasharray="0.05, 0.05"
-                                                />
-                                            );
-                                        })}
-                                    </svg>
+                                    {/* 겉면 */}
+                                    <div className="absolute inset-0" style={{
+                                        backgroundColor: outsideColor,
+                                        border: highlightPerimeter ? `3px solid #3b82f6` : `2px solid ${lineColor}`,
+                                        borderRadius: '50%',
+                                        backfaceVisibility: 'hidden',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                                        boxSizing: 'border-box'
+                                    }}>
+                                        {showSegments && (
+                                            <svg width="100%" height="100%" viewBox="-1 -1 2 2" style={{ transform: 'rotate(90deg)' }}>
+                                                {Array.from({ length: N }).map((_, i) => {
+                                                    const a1 = (i / N) * 2 * Math.PI;
+                                                    const a2 = ((i + 1) / N) * 2 * Math.PI;
+                                                    return (
+                                                        <polygon
+                                                            key={i}
+                                                            points={`0,0 ${Math.cos(a1)},${Math.sin(a1)} ${Math.cos(a2)},${Math.sin(a2)}`}
+                                                            fill={i % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.15)'}
+                                                            stroke={lineColor} strokeWidth={0.01} strokeDasharray="0.05, 0.05"
+                                                        />
+                                                    );
+                                                })}
+                                            </svg>
+                                        )}
+                                    </div>
+                                    {/* 안쪽면 */}
+                                    <div className="absolute inset-0" style={{
+                                        backgroundColor: insideColor,
+                                        border: highlightPerimeter ? `3px solid #3b82f6` : `2px solid ${lineColor}`,
+                                        borderRadius: '50%',
+                                        backfaceVisibility: 'hidden',
+                                        transform: 'rotateX(180deg)',
+                                        boxSizing: 'border-box'
+                                    }} />
                                 </div>
                             );
                         })()}

@@ -6,8 +6,8 @@ import { generateAllNets } from './utils/netGenerator';
 import { NetCanvas } from './components/NetCanvas';
 import { CompareCanvas } from './components/CompareCanvas';
 
-const DEFAULT_ROTATION = { x: 0, y: 0 }; 
-const ISO_ROTATION = { x: -25, y: 45 }; 
+const DEFAULT_ROTATION = { x: 0, y: 0 };
+const ISO_ROTATION = { x: -25, y: 45 };
 const PAINT_PALETTE = ['#ef4444', '#3b82f6', '#22c55e', '#fde047', '#a855f7', '#ffffff'];
 
 const App: React.FC = () => {
@@ -17,28 +17,29 @@ const App: React.FC = () => {
   const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [selectedNet, setSelectedNet] = useState<NetData | null>(null);
   const [foldProgress, setFoldProgress] = useState(0);
-  const [zoomLevel, setZoomLevel] = useState(1.0); 
-  const [transparency, setTransparency] = useState(0.4); 
+  const [zoomLevel, setZoomLevel] = useState(1.0);
+  const [transparency, setTransparency] = useState(0.4);
   const [activePairs, setActivePairs] = useState<Set<number>>(new Set());
   const [showGrid, setShowGrid] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
-  const [isClassroomMode, setIsClassroomMode] = useState(false);
   const [showEdgeMatches, setShowEdgeMatches] = useState(false);
+  const [showArea, setShowArea] = useState(false);
+  const [showBasePerimeter, setShowBasePerimeter] = useState(false);
   const [diceStyle, setDiceStyle] = useState<'none' | 'number' | 'dot'>('none');
   const [faceColors, setFaceColors] = useState<Record<number, string>>({});
   const [selectedPaintColor, setSelectedPaintColor] = useState<string | null>(null);
-  
+
   const [activeTool, setActiveTool] = useState<'move' | 'rotate'>('move');
   const [interactionMode, setInteractionMode] = useState<'rotate' | 'move'>('move');
-  
+
   const [viewRotation, setViewRotation] = useState(DEFAULT_ROTATION);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 }); 
-  const [isCanvasInteracting, setIsCanvasInteracting] = useState(false); 
-  const [isAnimatingRotation, setIsAnimatingRotation] = useState(false); 
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isCanvasInteracting, setIsCanvasInteracting] = useState(false);
+  const [isAnimatingRotation, setIsAnimatingRotation] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
   const isDraggingNet = useRef(false);
-  const [animDuration, setAnimDuration] = useState(1.5); 
+  const [animDuration, setAnimDuration] = useState(1.5);
   const lastScaleRef = useRef<number | null>(null);
   const compareScaleRef = useRef<number | null>(null);
   const compareZoomInitialized = useRef(false);
@@ -89,7 +90,7 @@ const App: React.FC = () => {
   const compareWorkspaceRef = useRef<HTMLDivElement>(null);
   const [workspaceSize, setWorkspaceSize] = useState({ width: 0, height: 0 });
   const [compareWorkspaceSize, setCompareWorkspaceSize] = useState({ width: 0, height: 0 });
-  const [controlPos, setControlPos] = useState({ x: 0, y: 0 }); 
+  const [controlPos, setControlPos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [hasMovedManually, setHasMovedManually] = useState(false);
@@ -363,9 +364,9 @@ const App: React.FC = () => {
   const handleCanvasDown = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('.tool-panel')) return;
-    
+
     setInteractionMode(activeTool);
-    
+
     setIsCanvasInteracting(true);
     setIsAnimatingRotation(false);
     isDraggingNet.current = false;
@@ -407,11 +408,11 @@ const App: React.FC = () => {
         const deltaX = clientX - lastMousePos.current.x;
         const deltaY = clientY - lastMousePos.current.y;
         if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) isDraggingNet.current = true;
-        
+
         if (interactionMode === 'rotate') {
-            setViewRotation(prev => ({ x: prev.x - deltaY * 0.5, y: prev.y + deltaX * 0.5 }));
+          setViewRotation(prev => ({ x: prev.x - deltaY * 0.5, y: prev.y + deltaX * 0.5 }));
         } else {
-            setPanOffset(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+          setPanOffset(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
         }
         lastMousePos.current = { x: clientX, y: clientY };
       }
@@ -451,15 +452,17 @@ const App: React.FC = () => {
     setFaceColors({});
     setSelectedPaintColor(null);
     setShowEdgeMatches(false);
+    setShowArea(false);
+    setShowBasePerimeter(false);
     setDiceStyle('none');
     if (window.innerWidth < 1024 && selectedNet) setIsSidebarOpen(false);
-  }, [mode]); 
+  }, [mode]);
 
-  const currentNets = useMemo(() => 
-    mode === 'cube' 
-      ? generateAllNets({ l: cubeSize, w: cubeSize, h: cubeSize }, true) 
+  const currentNets = useMemo(() =>
+    mode === 'cube'
+      ? generateAllNets({ l: cubeSize, w: cubeSize, h: cubeSize }, true)
       : generateAllNets(cuboidDims, false)
-  , [mode, cubeSize, cuboidDims]);
+    , [mode, cubeSize, cuboidDims]);
 
   const compareLeftNets = useMemo(
     () => generateAllNets(compareLeftDims, false),
@@ -524,7 +527,7 @@ const App: React.FC = () => {
   const setQuickView = (type: 'front' | 'top' | 'side' | 'iso') => {
     setIsAnimatingRotation(true);
     setAnimDuration(0.8);
-    switch(type) {
+    switch (type) {
       case 'front': setViewRotation({ x: 0, y: 0 }); break;
       case 'top': setViewRotation({ x: 90, y: 0 }); break;
       case 'side': setViewRotation({ x: 0, y: 90 }); break;
@@ -663,15 +666,15 @@ const App: React.FC = () => {
   const renderNetItem = (net: NetData, idx: number) => {
     const scale = Math.min(150 / Math.max(net.totalWidth, 1), 80 / Math.max(net.totalHeight, 1), 25);
     return (
-        <button key={`${net.id}-${idx}`} onClick={() => { setSelectedNet(net); setIsSidebarOpen(false); }}
-            className={`w-full flex flex-col items-center p-3 rounded-xl border-2 transition-all duration-200 ${selectedNet?.id === net.id ? 'border-blue-500 bg-blue-50/50' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
-            <div className="w-full h-28 relative pointer-events-none overflow-hidden rounded-lg border bg-slate-50/50 border-slate-100">
-                <NetCanvas net={net} scale={scale} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{x:0, y:0}} showGrid={false} />
-            </div>
-            <span className="mt-2 text-[10px] font-bold text-slate-500 uppercase">
-              {mode === 'cube' ? `유형 ${net.patternId}` : `유형 ${net.patternId}-${net.variantIndex}`}
-            </span>
-        </button>
+      <button key={`${net.id}-${idx}`} onClick={() => { setSelectedNet(net); setIsSidebarOpen(false); }}
+        className={`w-full flex flex-col items-center p-3 rounded-xl border-2 transition-all duration-200 ${selectedNet?.id === net.id ? 'border-blue-500 bg-blue-50/50' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
+        <div className="w-full h-28 relative pointer-events-none overflow-hidden rounded-lg border bg-slate-50/50 border-slate-100">
+          <NetCanvas net={net} scale={scale} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} />
+        </div>
+        <span className="mt-2 text-[10px] font-bold text-slate-500 uppercase">
+          {mode === 'cube' ? `유형 ${net.patternId}` : `유형 ${net.patternId}-${net.variantIndex}`}
+        </span>
+      </button>
     );
   };
 
@@ -808,8 +811,8 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className={`flex flex-col h-screen overflow-hidden font-sans select-none transition-all duration-700 ${isClassroomMode ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
-      <header className={`flex-none border-b px-4 py-3 shadow-sm z-40 flex items-center justify-between transition-all duration-500 ${isClassroomMode ? 'bg-black/40 backdrop-blur-md border-white/5' : 'bg-white border-slate-200'}`}>
+    <div className="flex flex-col h-screen overflow-hidden font-sans select-none transition-all duration-700 bg-slate-100 text-slate-900">
+      <header className="flex-none border-b px-4 py-3 shadow-sm z-40 flex items-center justify-between transition-all duration-500 bg-white border-slate-200">
         <div className="flex items-center gap-3">
           {activeTab === 'single' && (
             <button
@@ -827,29 +830,28 @@ const App: React.FC = () => {
           )}
           <h1 className="text-lg font-black tracking-tighter uppercase">전개도 마스터</h1>
         </div>
-        
+
         <div className="flex items-center gap-4">
-            <div className="flex p-1 bg-slate-100 rounded-xl">
-                <button
-                  onClick={() => { setActiveTab('single'); setMode('cube'); }}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cube' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
-                >
-                  정육면체
-                </button>
-                <button
-                  onClick={() => { setActiveTab('single'); setMode('cuboid'); }}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cuboid' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
-                >
-                  직육면체
-                </button>
-                <button
-                  onClick={() => setActiveTab('compare')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'compare' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
-                >
-                  비교모드
-                </button>
-            </div>
-            <button onClick={() => setIsClassroomMode(!isClassroomMode)} className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isClassroomMode ? 'bg-blue-600 text-white' : 'bg-slate-800 text-white'}`}>교실 모드</button>
+          <div className="flex p-1 bg-slate-100 rounded-xl">
+            <button
+              onClick={() => { setActiveTab('single'); setMode('cube'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cube' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            >
+              정육면체
+            </button>
+            <button
+              onClick={() => { setActiveTab('single'); setMode('cuboid'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cuboid' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            >
+              직육면체
+            </button>
+            <button
+              onClick={() => setActiveTab('compare')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'compare' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            >
+              비교모드
+            </button>
+          </div>
         </div>
       </header>
 
@@ -868,129 +870,137 @@ const App: React.FC = () => {
             }}
             className={`tool-panel fixed z-[60] flex flex-col rounded-2xl shadow-2xl border bg-white/95 backdrop-blur-xl border-slate-100 ${isDragging || isResizing ? '' : 'transition-all duration-300'}`}>
             <div onMouseDown={handleDragStart} onTouchStart={handleDragStart} className="px-3 py-3 border-b flex items-center justify-between cursor-grab active:cursor-grabbing bg-slate-50/80">
-                <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">수업 도구</span>
-                <button onClick={() => setIsPanelCollapsed(!isPanelCollapsed)} className="p-1.5 rounded-lg hover:bg-slate-200">
-                    <svg className={`w-4 h-4 transition-transform ${isPanelCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-                </button>
+              <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">수업 도구</span>
+              <button onClick={() => setIsPanelCollapsed(!isPanelCollapsed)} className="p-1.5 rounded-lg hover:bg-slate-200">
+                <svg className={`w-4 h-4 transition-transform ${isPanelCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+              </button>
             </div>
             {isPanelCollapsed ? (
               <div className="p-3">{foldSliderOnly}</div>
             ) : (
               <div className="p-4 space-y-6 panel-scroll flex-1">
-                  <div className="space-y-2">
-                    <span className="text-[9px] font-black text-slate-400 uppercase">조작 모드</span>
-                    <div className="flex p-1 bg-slate-100 rounded-xl">
-                      <button onClick={() => setActiveTool('move')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'move' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>이동</button>
-                      <button onClick={() => setActiveTool('rotate')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'rotate' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>각도</button>
-                    </div>
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase">조작 모드</span>
+                  <div className="flex p-1 bg-slate-100 rounded-xl">
+                    <button onClick={() => setActiveTool('move')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'move' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>이동</button>
+                    <button onClick={() => setActiveTool('rotate')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${activeTool === 'rotate' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>각도</button>
                   </div>
-                  <div className="space-y-2">
-                      <span className="text-[9px] font-black text-slate-400 uppercase">배율</span>
-                      <div className="flex items-center p-1 bg-slate-100 rounded-xl">
-                          <button onClick={() => adjustZoom(-0.1)} className="w-8 h-8 font-bold">-</button>
-                          <div className="flex-1 text-center text-[10px] font-black">{Math.round(zoomLevel * 100)}%</div>
-                          <button onClick={() => adjustZoom(0.1)} className="w-8 h-8 font-bold">+</button>
-                      </div>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase">배율</span>
+                  <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+                    <button onClick={() => adjustZoom(-0.1)} className="w-8 h-8 font-bold">-</button>
+                    <div className="flex-1 text-center text-[10px] font-black">{Math.round(zoomLevel * 100)}%</div>
+                    <button onClick={() => adjustZoom(0.1)} className="w-8 h-8 font-bold">+</button>
                   </div>
+                </div>
 
-                  {mode === 'cuboid' && (
-                    <div className="space-y-3 pt-2 border-t border-slate-50">
-                      <span className="text-[10px] font-bold block uppercase text-slate-500">직육면체 크기</span>
-                      <div className="grid grid-cols-3 gap-2">
-                        {([
-                          { key: 'l', label: '가로' },
-                          { key: 'w', label: '세로' },
-                          { key: 'h', label: '높이' },
-                        ] as const).map(({ key, label }) => (
-                          <div key={key} className="space-y-2">
-                            <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
-                            <div className="flex items-center p-1 bg-slate-100 rounded-xl">
-                              <button onClick={() => updateCuboidDim(key, cuboidDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
-                              <input
-                                type="number"
-                                min={1}
-                                max={10}
-                                value={cuboidDims[key]}
-                                onChange={e => updateCuboidDim(key, Number(e.target.value))}
-                                className="w-10 text-center text-[10px] font-black bg-transparent outline-none"
-                              />
-                              <button onClick={() => updateCuboidDim(key, cuboidDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
-                            </div>
+                {mode === 'cuboid' && (
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">직육면체 크기</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { key: 'l', label: '가로' },
+                        { key: 'w', label: '세로' },
+                        { key: 'h', label: '높이' },
+                      ] as const).map(({ key, label }) => (
+                        <div key={key} className="space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
+                          <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+                            <button onClick={() => updateCuboidDim(key, cuboidDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
+                            <input
+                              type="number"
+                              min={1}
+                              max={10}
+                              value={cuboidDims[key]}
+                              onChange={e => updateCuboidDim(key, Number(e.target.value))}
+                              className="w-10 text-center text-[10px] font-black bg-transparent outline-none"
+                            />
+                            <button onClick={() => updateCuboidDim(key, cuboidDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-
-                  {/* 단계별 접기 */}
-                  {foldControls}
-
-                  {/* 면 투명도 조절 */}
-                  <div className="space-y-3 pt-2 border-t border-slate-50">
-                      <span className="text-[10px] font-bold block uppercase text-slate-500">면 투명도</span>
-                      <input 
-                          type="range" 
-                          min="0" 
-                          max="0.9" 
-                          step="0.05"
-                          value={transparency} 
-                          onChange={e => setTransparency(Number(e.target.value))} 
-                          className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none accent-blue-600" 
-                      />
-                      <div className="flex justify-between text-[8px] font-bold text-slate-400">
-                          <span>불투명</span>
-                          <span>투명</span>
-                      </div>
                   </div>
+                )}
 
-                  {/* 주사위 설정 */}
-                  <div className="space-y-3 pt-2 border-t border-slate-50">
-                      <span className="text-[10px] font-bold block uppercase text-slate-500">주사위 눈 (합=7)</span>
-                      <div className="flex p-1 bg-slate-100 rounded-xl">
-                          <button onClick={() => setDiceStyle('none')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}>없음</button>
-                          <button onClick={() => setDiceStyle('number')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'number' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>숫자</button>
-                          <button onClick={() => setDiceStyle('dot')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'dot' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>눈</button>
-                      </div>
-                  </div>
+                {/* 단계별 접기 */}
+                {foldControls}
 
-                  {/* 평행한 면 강조 */}
-                  <div className="space-y-3 pt-2 border-t border-slate-50">
-                      <span className="text-[10px] font-bold block uppercase text-slate-500">평행한 면 (같은 색칠)</span>
-                      <div className="flex gap-2">
-                          {[0, 1, 2].map(id => (
-                              <button key={id} onClick={() => togglePair(id)} className={`flex-1 py-2 rounded-xl font-black text-[10px] border-2 transition-all ${activePairs.has(id) ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>쌍 {id + 1}</button>
-                          ))}
-                      </div>
+                {/* 면 투명도 조절 */}
+                <div className="space-y-3 pt-2 border-t border-slate-50">
+                  <span className="text-[10px] font-bold block uppercase text-slate-500">면 투명도</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="0.9"
+                    step="0.05"
+                    value={transparency}
+                    onChange={e => setTransparency(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none accent-blue-600"
+                  />
+                  <div className="flex justify-between text-[8px] font-bold text-slate-400">
+                    <span>불투명</span>
+                    <span>투명</span>
                   </div>
+                </div>
 
-                  {/* 맞물리는 모서리 강조 */}
-                  <div className="space-y-3 pt-2 border-t border-slate-50">
-                      <span className="text-[10px] font-bold block uppercase text-slate-500">모서리 분석</span>
-                      <button onClick={() => setShowEdgeMatches(!showEdgeMatches)} className={`w-full py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showEdgeMatches ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-100'}`}>
-                          {showEdgeMatches ? '모서리 매칭 OFF' : '맞물리는 모서리 표시'}
-                      </button>
+                {/* 주사위 설정 */}
+                <div className="space-y-3 pt-2 border-t border-slate-50">
+                  <span className="text-[10px] font-bold block uppercase text-slate-500">주사위 눈 (합=7)</span>
+                  <div className="flex p-1 bg-slate-100 rounded-xl">
+                    <button onClick={() => setDiceStyle('none')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}>없음</button>
+                    <button onClick={() => setDiceStyle('number')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'number' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>숫자</button>
+                    <button onClick={() => setDiceStyle('dot')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${diceStyle === 'dot' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>눈</button>
                   </div>
+                </div>
 
-                  {/* 색칠 도구 */}
-                  <div className="space-y-3 pt-2 border-t border-slate-50">
-                      <span className="text-[10px] font-bold block uppercase text-slate-500">색칠하기</span>
-                      <div className="flex flex-wrap gap-2">
-                          {PAINT_PALETTE.map(color => (
-                              <button key={color} onClick={() => setSelectedPaintColor(selectedPaintColor === color ? null : color)} className={`w-8 h-8 rounded-full border-2 ${selectedPaintColor === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`} style={{ backgroundColor: color }} />
-                          ))}
-                      </div>
+                {/* 평행한 면 강조 */}
+                <div className="space-y-3 pt-2 border-t border-slate-50">
+                  <span className="text-[10px] font-bold block uppercase text-slate-500">평행한 면 (같은 색칠)</span>
+                  <div className="flex gap-2">
+                    {[0, 1, 2].map(id => (
+                      <button key={id} onClick={() => togglePair(id)} className={`flex-1 py-2 rounded-xl font-black text-[10px] border-2 transition-all ${activePairs.has(id) ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>쌍 {id + 1}</button>
+                    ))}
                   </div>
+                </div>
 
-                  {/* 관찰 시점 */}
-                  <div className="space-y-3 pt-2 border-t border-slate-50">
-                      <span className="text-[10px] font-bold block uppercase text-slate-500">관찰 시점</span>
-                      <div className="grid grid-cols-2 gap-2">
-                          <button onClick={() => setQuickView('front')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">앞면</button>
-                          <button onClick={() => setQuickView('top')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">윗면</button>
-                          <button onClick={() => setQuickView('side')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">옆면</button>
-                          <button onClick={() => setQuickView('iso')} className="py-2 text-[10px] font-black rounded-xl border bg-blue-50 text-blue-600">입체</button>
-                      </div>
+                {/* 도형 분석 (모서리, 넓이) */}
+                <div className="space-y-3 pt-2 border-t border-slate-50">
+                  <span className="text-[10px] font-bold block uppercase text-slate-500">도형 분석</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowEdgeMatches(!showEdgeMatches)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showEdgeMatches ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-100 hover:border-green-200'}`}>
+                      모서리 매칭
+                    </button>
+                    <button onClick={() => setShowArea(!showArea)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showArea ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-100 hover:border-blue-200'}`}>
+                      겉넓이 보기
+                    </button>
+                    <button onClick={() => setShowBasePerimeter(!showBasePerimeter)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showBasePerimeter ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-100 hover:border-amber-200'}`}>
+                      밑면 둘레 증명
+                    </button>
                   </div>
+                </div>
+
+                {/* 색칠 도구 */}
+                <div className="space-y-3 pt-2 border-t border-slate-50">
+                  <span className="text-[10px] font-bold block uppercase text-slate-500">색칠하기</span>
+                  <div className="flex flex-wrap gap-2">
+                    {PAINT_PALETTE.map(color => (
+                      <button key={color} onClick={() => setSelectedPaintColor(selectedPaintColor === color ? null : color)} className={`w-8 h-8 rounded-full border-2 ${selectedPaintColor === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`} style={{ backgroundColor: color }} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 관찰 시점 */}
+                <div className="space-y-3 pt-2 border-t border-slate-50">
+                  <span className="text-[10px] font-bold block uppercase text-slate-500">관찰 시점</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setQuickView('front')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">앞면</button>
+                    <button onClick={() => setQuickView('top')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">윗면</button>
+                    <button onClick={() => setQuickView('side')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">옆면</button>
+                    <button onClick={() => setQuickView('iso')} className="py-2 text-[10px] font-black rounded-xl border bg-blue-50 text-blue-600">입체</button>
+                  </div>
+                </div>
               </div>
             )}
             <div
@@ -1004,409 +1014,409 @@ const App: React.FC = () => {
         )}
         {activeTab === 'single' && (
           <aside className={`absolute lg:relative z-20 h-full transition-all duration-300 border-r bg-white border-slate-200 ${isSidebarOpen ? 'w-[320px] translate-x-0' : '-translate-x-full lg:w-0'}`}>
-              <div className="flex flex-col h-full p-4 overflow-y-auto no-scrollbar space-y-6">
-                  <div className="flex justify-between items-center">
-                      <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">전개도 탐색</h2>
-                      <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-1 text-slate-400"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4">{currentNets.map((n, i) => renderNetItem(n, i))}</div>
+            <div className="flex flex-col h-full p-4 overflow-y-auto no-scrollbar space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">전개도 탐색</h2>
+                <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-1 text-slate-400"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
               </div>
+              <div className="grid grid-cols-1 gap-4">{currentNets.map((n, i) => renderNetItem(n, i))}</div>
+            </div>
           </aside>
         )}
 
         <main className="flex-1 relative flex flex-col min-w-0">
-            <div className={`flex-1 flex flex-col p-4 sm:p-6 lg:p-10 min-h-0 ${isClassroomMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
-                {activeTab === 'single' ? (
-                  selectedNet ? (
-                      <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
-                          <div ref={workspaceRef} onMouseDown={handleCanvasDown} onTouchStart={handleCanvasDown} 
-                            className={`flex-1 flex items-center justify-center relative overflow-hidden touch-none ${isCanvasInteracting ? (interactionMode === 'rotate' ? 'cursor-grabbing' : 'cursor-move') : (activeTool === 'move' ? 'cursor-move' : (selectedPaintColor ? 'cursor-copy' : 'cursor-grab'))}`}>
-                               <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} />
-                          </div>
-                      </div>
+          <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-10 min-h-0 bg-slate-50">
+            {activeTab === 'single' ? (
+              selectedNet ? (
+                <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
+                  <div ref={workspaceRef} onMouseDown={handleCanvasDown} onTouchStart={handleCanvasDown}
+                    className={`flex-1 flex items-center justify-center relative overflow-hidden touch-none ${isCanvasInteracting ? (interactionMode === 'rotate' ? 'cursor-grabbing' : 'cursor-move') : (activeTool === 'move' ? 'cursor-move' : (selectedPaintColor ? 'cursor-copy' : 'cursor-grab'))}`}>
+                    <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} showArea={showArea} showBasePerimeter={showBasePerimeter} />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                  <p className="text-2xl font-black mb-4">학습할 전개도를 선택하세요</p>
+                </div>
+              )
+            ) : (
+              <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
+                <div ref={compareWorkspaceRef} className="absolute inset-0">
+                  {compareLeftNet && compareRightNet ? (
+                    <CompareCanvas
+                      leftNet={compareLeftNet}
+                      rightNet={compareRightNet}
+                      scale={compareScale}
+                      leftPan={comparePanLeft}
+                      rightPan={comparePanRight}
+                      leftFoldProgress={compareFoldLeft}
+                      rightFoldProgress={compareFoldRight}
+                      onLeftPanChange={setComparePanLeft}
+                      onRightPanChange={setComparePanRight}
+                      leftRotation={compareRotation.left}
+                      rightRotation={compareRotation.right}
+                      onLeftRotationChange={(value) => setCompareRotation(prev => ({ ...prev, left: value }))}
+                      onRightRotationChange={(value) => setCompareRotation(prev => ({ ...prev, right: value }))}
+                      canvasSize={compareWorkspaceSize}
+                      showGrid={showGrid}
+                      activeSide={compareActiveSide}
+                      onActiveSideChange={setCompareActiveSide}
+                      leftMode={compareInteractionMode.left}
+                      rightMode={compareInteractionMode.right}
+                    />
                   ) : (
-                      <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-                          <p className="text-2xl font-black mb-4">학습할 전개도를 선택하세요</p>
-                      </div>
-                  )
-                ) : (
-                  <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
-                      <div ref={compareWorkspaceRef} className="absolute inset-0">
-                        {compareLeftNet && compareRightNet ? (
-                          <CompareCanvas
-                            leftNet={compareLeftNet}
-                            rightNet={compareRightNet}
-                            scale={compareScale}
-                            leftPan={comparePanLeft}
-                            rightPan={comparePanRight}
-                            leftFoldProgress={compareFoldLeft}
-                            rightFoldProgress={compareFoldRight}
-                            onLeftPanChange={setComparePanLeft}
-                            onRightPanChange={setComparePanRight}
-                            leftRotation={compareRotation.left}
-                            rightRotation={compareRotation.right}
-                            onLeftRotationChange={(value) => setCompareRotation(prev => ({ ...prev, left: value }))}
-                            onRightRotationChange={(value) => setCompareRotation(prev => ({ ...prev, right: value }))}
-                            canvasSize={compareWorkspaceSize}
-                            showGrid={showGrid}
-                            activeSide={compareActiveSide}
-                            onActiveSideChange={setCompareActiveSide}
-                            leftMode={compareInteractionMode.left}
-                            rightMode={compareInteractionMode.right}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-400">전개도를 선택하세요</div>
+                    <div className="w-full h-full flex items-center justify-center text-slate-400">전개도를 선택하세요</div>
+                  )}
+                </div>
+
+                {typeof document !== 'undefined' ? createPortal(commonPanel, document.body) : commonPanel}
+
+                {compareLeftNet && (
+                  <div
+                    ref={compareLeftPanelRef}
+                    style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.left.x}px, ${comparePanelPos.left.y}px, 0)` }}
+                    className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'} ${comparePanelCollapsed.left ? 'w-[220px]' : 'w-64'}`}
+                    onMouseDown={() => setCompareActiveSide('left')}
+                    onTouchStart={() => setCompareActiveSide('left')}
+                  >
+                    <div
+                      onMouseDown={(e) => handleComparePanelDragStart('left', e)}
+                      onTouchStart={(e) => handleComparePanelDragStart('left', e)}
+                      className={`flex cursor-grab items-center justify-between border-b active:cursor-grabbing ${comparePanelCollapsed.left ? 'px-2 py-0.5' : 'px-3 py-2'}`}
+                    >
+                      <span className={`${comparePanelCollapsed.left ? 'text-[9px]' : 'text-[10px]'} font-black uppercase text-red-500`}>빨강 전개도</span>
+                      <div className="flex items-center gap-2">
+                        {!comparePanelCollapsed.left && (
+                          <span className="text-[9px] font-bold text-slate-400">좌측</span>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setComparePanelCollapsed(prev => ({ ...prev, left: !prev.left }));
+                          }}
+                          className="rounded-md p-1 hover:bg-slate-100"
+                          aria-label="왼쪽 패널 접기/펼치기"
+                        >
+                          <svg className={`h-4 w-4 transition-transform ${comparePanelCollapsed.left ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
                       </div>
-
-                      {typeof document !== 'undefined' ? createPortal(commonPanel, document.body) : commonPanel}
-
-                      {compareLeftNet && (
-                        <div
-                          ref={compareLeftPanelRef}
-                          style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.left.x}px, ${comparePanelPos.left.y}px, 0)` }}
-                          className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'left' ? 'ring-2 ring-red-300' : 'border-red-100'} ${comparePanelCollapsed.left ? 'w-[220px]' : 'w-64'}`}
-                          onMouseDown={() => setCompareActiveSide('left')}
-                          onTouchStart={() => setCompareActiveSide('left')}
-                        >
-                          <div
-                            onMouseDown={(e) => handleComparePanelDragStart('left', e)}
-                            onTouchStart={(e) => handleComparePanelDragStart('left', e)}
-                            className={`flex cursor-grab items-center justify-between border-b active:cursor-grabbing ${comparePanelCollapsed.left ? 'px-2 py-0.5' : 'px-3 py-2'}`}
-                          >
-                            <span className={`${comparePanelCollapsed.left ? 'text-[9px]' : 'text-[10px]'} font-black uppercase text-red-500`}>빨강 전개도</span>
-                            <div className="flex items-center gap-2">
-                              {!comparePanelCollapsed.left && (
-                                <span className="text-[9px] font-bold text-slate-400">좌측</span>
-                              )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setComparePanelCollapsed(prev => ({ ...prev, left: !prev.left }));
-                                }}
-                                className="rounded-md p-1 hover:bg-slate-100"
-                                aria-label="왼쪽 패널 접기/펼치기"
-                              >
-                                <svg className={`h-4 w-4 transition-transform ${comparePanelCollapsed.left ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-                            </div>
+                    </div>
+                    {comparePanelCollapsed.left ? (
+                      <div className="p-1.5 space-y-2">
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase">조작 모드</span>
+                          <div className="flex p-1 bg-slate-100 rounded-lg">
+                            <button
+                              onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'move' }))}
+                              className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.left === 'move' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
+                            >
+                              이동
+                            </button>
+                            <button
+                              onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'rotate' }))}
+                              className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.left === 'rotate' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
+                            >
+                              각도
+                            </button>
                           </div>
-                          {comparePanelCollapsed.left ? (
-                            <div className="p-1.5 space-y-2">
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase">조작 모드</span>
-                                <div className="flex p-1 bg-slate-100 rounded-lg">
-                                  <button
-                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'move' }))}
-                                    className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.left === 'move' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
-                                  >
-                                    이동
-                                  </button>
-                                  <button
-                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'rotate' }))}
-                                    className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.left === 'rotate' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
-                                  >
-                                    각도
-                                  </button>
-                                </div>
-                              </div>
-                              <select
-                                className="w-full rounded-md border border-slate-200 bg-white p-1 text-[9px] font-black"
-                                value={compareLeftNet.id}
-                                onChange={e => {
-                                  const next = compareLeftNets.find(net => net.id === e.target.value);
-                                  if (next) setCompareLeftNet(next);
-                                }}
-                              >
-                                {compareLeftNets.map(net => (
-                                  <option key={net.id} value={net.id}>
-                                    유형 {net.patternId}-{net.variantIndex}
-                                  </option>
-                                ))}
-                              </select>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={compareFoldLeft}
-                                onChange={e => setCompareFoldLeft(Number(e.target.value))}
-                                className="h-0.5 w-full rounded-lg bg-slate-100 accent-red-500"
-                              />
-                            </div>
-                          ) : (
-                            <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
-                              <div className="space-y-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">조작 모드</span>
-                                <div className="flex p-1 bg-slate-100 rounded-xl">
-                                  <button
-                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'move' }))}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.left === 'move' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
-                                  >
-                                    이동
-                                  </button>
-                                  <button
-                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'rotate' }))}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.left === 'rotate' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
-                                  >
-                                    각도
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => resetCompareRotation('left')}
-                                  className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
-                                >
-                                  각도 초기화
-                                </button>
-                                <button
-                                  onClick={() => resetComparePosition('left')}
-                                  className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
-                                >
-                                  원위치
-                                </button>
-                              </div>
-                              <div className="space-y-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
-                                <select
-                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
-                                  value={compareLeftNet.id}
-                                  onChange={e => {
-                                    const next = compareLeftNets.find(net => net.id === e.target.value);
-                                    if (next) setCompareLeftNet(next);
-                                  }}
-                                >
-                                  {compareLeftNets.map(net => (
-                                    <option key={net.id} value={net.id}>
-                                      유형 {net.patternId}-{net.variantIndex}
-                                    </option>
-                                  ))}
-                                </select>
-                                {compareLeftNet && (
-                                  <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
-                                    <NetCanvas net={compareLeftNet} scale={getComparePreviewScale(compareLeftNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#ef4444" foldLineColor="#ef4444" mutedLineColor="#fca5a5" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="space-y-3 pt-2 border-t border-slate-100">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
-                                <div className="grid grid-cols-3 gap-2">
-                                  {([
-                                    { key: 'l', label: '가로' },
-                                    { key: 'w', label: '세로' },
-                                    { key: 'h', label: '높이' }
-                                  ] as const).map(({ key, label }) => (
-                                    <div key={key} className="space-y-2">
-                                      <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
-                                      <div className="flex items-center rounded-xl bg-slate-100 p-1">
-                                        <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
-                                        <input
-                                          type="number"
-                                          min={1}
-                                          max={10}
-                                          value={compareLeftDims[key]}
-                                          onChange={e => updateCompareDim('left', key, Number(e.target.value))}
-                                          className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
-                                        />
-                                        <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="space-y-2 pt-2 border-t border-slate-100">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  value={compareFoldLeft}
-                                  onChange={e => setCompareFoldLeft(Number(e.target.value))}
-                                  className="h-1.5 w-full rounded-lg bg-slate-100 accent-red-500"
-                                />
-                                <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldLeft}%</div>
-                              </div>
+                        </div>
+                        <select
+                          className="w-full rounded-md border border-slate-200 bg-white p-1 text-[9px] font-black"
+                          value={compareLeftNet.id}
+                          onChange={e => {
+                            const next = compareLeftNets.find(net => net.id === e.target.value);
+                            if (next) setCompareLeftNet(next);
+                          }}
+                        >
+                          {compareLeftNets.map(net => (
+                            <option key={net.id} value={net.id}>
+                              유형 {net.patternId}-{net.variantIndex}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={compareFoldLeft}
+                          onChange={e => setCompareFoldLeft(Number(e.target.value))}
+                          className="h-0.5 w-full rounded-lg bg-slate-100 accent-red-500"
+                        />
+                      </div>
+                    ) : (
+                      <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">조작 모드</span>
+                          <div className="flex p-1 bg-slate-100 rounded-xl">
+                            <button
+                              onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'move' }))}
+                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.left === 'move' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
+                            >
+                              이동
+                            </button>
+                            <button
+                              onClick={() => setCompareInteractionMode(prev => ({ ...prev, left: 'rotate' }))}
+                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.left === 'rotate' ? 'bg-red-500 text-white' : 'text-slate-400'}`}
+                            >
+                              각도
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => resetCompareRotation('left')}
+                            className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
+                          >
+                            각도 초기화
+                          </button>
+                          <button
+                            onClick={() => resetComparePosition('left')}
+                            className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
+                          >
+                            원위치
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                          <select
+                            className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
+                            value={compareLeftNet.id}
+                            onChange={e => {
+                              const next = compareLeftNets.find(net => net.id === e.target.value);
+                              if (next) setCompareLeftNet(next);
+                            }}
+                          >
+                            {compareLeftNets.map(net => (
+                              <option key={net.id} value={net.id}>
+                                유형 {net.patternId}-{net.variantIndex}
+                              </option>
+                            ))}
+                          </select>
+                          {compareLeftNet && (
+                            <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
+                              <NetCanvas net={compareLeftNet} scale={getComparePreviewScale(compareLeftNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#ef4444" foldLineColor="#ef4444" mutedLineColor="#fca5a5" />
                             </div>
                           )}
                         </div>
-                      )}
-
-                      {compareRightNet && (
-                        <div
-                          ref={compareRightPanelRef}
-                          style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.right.x}px, ${comparePanelPos.right.y}px, 0)` }}
-                          className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'} ${comparePanelCollapsed.right ? 'w-[220px]' : 'w-64'}`}
-                          onMouseDown={() => setCompareActiveSide('right')}
-                          onTouchStart={() => setCompareActiveSide('right')}
-                        >
-                          <div
-                            onMouseDown={(e) => handleComparePanelDragStart('right', e)}
-                            onTouchStart={(e) => handleComparePanelDragStart('right', e)}
-                            className={`flex cursor-grab items-center justify-between border-b active:cursor-grabbing ${comparePanelCollapsed.right ? 'px-2 py-0.5' : 'px-3 py-2'}`}
-                          >
-                            <span className={`${comparePanelCollapsed.right ? 'text-[9px]' : 'text-[10px]'} font-black uppercase text-blue-500`}>파랑 전개도</span>
-                            <div className="flex items-center gap-2">
-                              {!comparePanelCollapsed.right && (
-                                <span className="text-[9px] font-bold text-slate-400">우측</span>
-                              )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setComparePanelCollapsed(prev => ({ ...prev, right: !prev.right }));
-                                }}
-                                className="rounded-md p-1 hover:bg-slate-100"
-                                aria-label="오른쪽 패널 접기/펼치기"
-                              >
-                                <svg className={`h-4 w-4 transition-transform ${comparePanelCollapsed.right ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-                            </div>
+                        <div className="space-y-3 pt-2 border-t border-slate-100">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
+                          <div className="grid grid-cols-3 gap-2">
+                            {([
+                              { key: 'l', label: '가로' },
+                              { key: 'w', label: '세로' },
+                              { key: 'h', label: '높이' }
+                            ] as const).map(({ key, label }) => (
+                              <div key={key} className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
+                                <div className="flex items-center rounded-xl bg-slate-100 p-1">
+                                  <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={10}
+                                    value={compareLeftDims[key]}
+                                    onChange={e => updateCompareDim('left', key, Number(e.target.value))}
+                                    className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
+                                  />
+                                  <button onClick={() => updateCompareDim('left', key, compareLeftDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          {comparePanelCollapsed.right ? (
-                            <div className="p-1.5 space-y-2">
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase">조작 모드</span>
-                                <div className="flex p-1 bg-slate-100 rounded-lg">
-                                  <button
-                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'move' }))}
-                                    className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.right === 'move' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
-                                  >
-                                    이동
-                                  </button>
-                                  <button
-                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'rotate' }))}
-                                    className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.right === 'rotate' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
-                                  >
-                                    각도
-                                  </button>
-                                </div>
-                              </div>
-                              <select
-                                className="w-full rounded-md border border-slate-200 bg-white p-1 text-[9px] font-black"
-                                value={compareRightNet.id}
-                                onChange={e => {
-                                  const next = compareRightNets.find(net => net.id === e.target.value);
-                                  if (next) setCompareRightNet(next);
-                                }}
-                              >
-                                {compareRightNets.map(net => (
-                                  <option key={net.id} value={net.id}>
-                                    유형 {net.patternId}-{net.variantIndex}
-                                  </option>
-                                ))}
-                              </select>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={compareFoldRight}
-                                onChange={e => setCompareFoldRight(Number(e.target.value))}
-                                className="h-0.5 w-full rounded-lg bg-slate-100 accent-blue-500"
-                              />
-                            </div>
-                          ) : (
-                            <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
-                              <div className="space-y-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">조작 모드</span>
-                                <div className="flex p-1 bg-slate-100 rounded-xl">
-                                  <button
-                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'move' }))}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.right === 'move' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
-                                  >
-                                    이동
-                                  </button>
-                                  <button
-                                    onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'rotate' }))}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.right === 'rotate' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
-                                  >
-                                    각도
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => resetCompareRotation('right')}
-                                  className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
-                                >
-                                  각도 초기화
-                                </button>
-                                <button
-                                  onClick={() => resetComparePosition('right')}
-                                  className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
-                                >
-                                  원위치
-                                </button>
-                              </div>
-                              <div className="space-y-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
-                                <select
-                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
-                                  value={compareRightNet.id}
-                                  onChange={e => {
-                                    const next = compareRightNets.find(net => net.id === e.target.value);
-                                    if (next) setCompareRightNet(next);
-                                  }}
-                                >
-                                  {compareRightNets.map(net => (
-                                    <option key={net.id} value={net.id}>
-                                      유형 {net.patternId}-{net.variantIndex}
-                                    </option>
-                                  ))}
-                                </select>
-                                {compareRightNet && (
-                                  <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
-                                    <NetCanvas net={compareRightNet} scale={getComparePreviewScale(compareRightNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#3b82f6" foldLineColor="#3b82f6" mutedLineColor="#93c5fd" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="space-y-3 pt-2 border-t border-slate-100">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
-                                <div className="grid grid-cols-3 gap-2">
-                                  {([
-                                    { key: 'l', label: '가로' },
-                                    { key: 'w', label: '세로' },
-                                    { key: 'h', label: '높이' }
-                                  ] as const).map(({ key, label }) => (
-                                    <div key={key} className="space-y-2">
-                                      <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
-                                      <div className="flex items-center rounded-xl bg-slate-100 p-1">
-                                        <button onClick={() => updateCompareDim('right', key, compareRightDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
-                                        <input
-                                          type="number"
-                                          min={1}
-                                          max={10}
-                                          value={compareRightDims[key]}
-                                          onChange={e => updateCompareDim('right', key, Number(e.target.value))}
-                                          className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
-                                        />
-                                        <button onClick={() => updateCompareDim('right', key, compareRightDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="space-y-2 pt-2 border-t border-slate-100">
-                                <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  value={compareFoldRight}
-                                  onChange={e => setCompareFoldRight(Number(e.target.value))}
-                                  className="h-1.5 w-full rounded-lg bg-slate-100 accent-blue-500"
-                                />
-                                <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldRight}%</div>
-                              </div>
-                            </div>
-                          )}
                         </div>
-                      )}
+                        <div className="space-y-2 pt-2 border-t border-slate-100">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={compareFoldLeft}
+                            onChange={e => setCompareFoldLeft(Number(e.target.value))}
+                            className="h-1.5 w-full rounded-lg bg-slate-100 accent-red-500"
+                          />
+                          <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldLeft}%</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-            </div>
+
+                {compareRightNet && (
+                  <div
+                    ref={compareRightPanelRef}
+                    style={{ left: 0, top: 0, transform: `translate3d(${comparePanelPos.right.x}px, ${comparePanelPos.right.y}px, 0)` }}
+                    className={`fixed z-[70] rounded-2xl border bg-white/95 shadow-xl ${compareActiveSide === 'right' ? 'ring-2 ring-blue-300' : 'border-blue-100'} ${comparePanelCollapsed.right ? 'w-[220px]' : 'w-64'}`}
+                    onMouseDown={() => setCompareActiveSide('right')}
+                    onTouchStart={() => setCompareActiveSide('right')}
+                  >
+                    <div
+                      onMouseDown={(e) => handleComparePanelDragStart('right', e)}
+                      onTouchStart={(e) => handleComparePanelDragStart('right', e)}
+                      className={`flex cursor-grab items-center justify-between border-b active:cursor-grabbing ${comparePanelCollapsed.right ? 'px-2 py-0.5' : 'px-3 py-2'}`}
+                    >
+                      <span className={`${comparePanelCollapsed.right ? 'text-[9px]' : 'text-[10px]'} font-black uppercase text-blue-500`}>파랑 전개도</span>
+                      <div className="flex items-center gap-2">
+                        {!comparePanelCollapsed.right && (
+                          <span className="text-[9px] font-bold text-slate-400">우측</span>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setComparePanelCollapsed(prev => ({ ...prev, right: !prev.right }));
+                          }}
+                          className="rounded-md p-1 hover:bg-slate-100"
+                          aria-label="오른쪽 패널 접기/펼치기"
+                        >
+                          <svg className={`h-4 w-4 transition-transform ${comparePanelCollapsed.right ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    {comparePanelCollapsed.right ? (
+                      <div className="p-1.5 space-y-2">
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase">조작 모드</span>
+                          <div className="flex p-1 bg-slate-100 rounded-lg">
+                            <button
+                              onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'move' }))}
+                              className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.right === 'move' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
+                            >
+                              이동
+                            </button>
+                            <button
+                              onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'rotate' }))}
+                              className={`flex-1 py-1 rounded-md text-[9px] font-black transition-all ${compareInteractionMode.right === 'rotate' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
+                            >
+                              각도
+                            </button>
+                          </div>
+                        </div>
+                        <select
+                          className="w-full rounded-md border border-slate-200 bg-white p-1 text-[9px] font-black"
+                          value={compareRightNet.id}
+                          onChange={e => {
+                            const next = compareRightNets.find(net => net.id === e.target.value);
+                            if (next) setCompareRightNet(next);
+                          }}
+                        >
+                          {compareRightNets.map(net => (
+                            <option key={net.id} value={net.id}>
+                              유형 {net.patternId}-{net.variantIndex}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={compareFoldRight}
+                          onChange={e => setCompareFoldRight(Number(e.target.value))}
+                          className="h-0.5 w-full rounded-lg bg-slate-100 accent-blue-500"
+                        />
+                      </div>
+                    ) : (
+                      <div className="panel-scroll max-h-[70vh] space-y-4 p-3">
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">조작 모드</span>
+                          <div className="flex p-1 bg-slate-100 rounded-xl">
+                            <button
+                              onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'move' }))}
+                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.right === 'move' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
+                            >
+                              이동
+                            </button>
+                            <button
+                              onClick={() => setCompareInteractionMode(prev => ({ ...prev, right: 'rotate' }))}
+                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${compareInteractionMode.right === 'rotate' ? 'bg-blue-500 text-white' : 'text-slate-400'}`}
+                            >
+                              각도
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => resetCompareRotation('right')}
+                            className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
+                          >
+                            각도 초기화
+                          </button>
+                          <button
+                            onClick={() => resetComparePosition('right')}
+                            className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[9px] font-black text-slate-500"
+                          >
+                            원위치
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">전개도 선택</span>
+                          <select
+                            className="w-full rounded-lg border border-slate-200 bg-white p-2 text-[10px] font-black"
+                            value={compareRightNet.id}
+                            onChange={e => {
+                              const next = compareRightNets.find(net => net.id === e.target.value);
+                              if (next) setCompareRightNet(next);
+                            }}
+                          >
+                            {compareRightNets.map(net => (
+                              <option key={net.id} value={net.id}>
+                                유형 {net.patternId}-{net.variantIndex}
+                              </option>
+                            ))}
+                          </select>
+                          {compareRightNet && (
+                            <div className="mt-2 h-20 rounded-lg border border-slate-100 bg-slate-50/70 p-2 flex items-center justify-center">
+                              <NetCanvas net={compareRightNet} scale={getComparePreviewScale(compareRightNet)} interactive={false} foldProgress={0} rotation={{ x: 0, y: 0 }} transparency={0} panOffset={{ x: 0, y: 0 }} showGrid={false} lineColor="#3b82f6" foldLineColor="#3b82f6" mutedLineColor="#93c5fd" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-3 pt-2 border-t border-slate-100">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">직육면체 크기</span>
+                          <div className="grid grid-cols-3 gap-2">
+                            {([
+                              { key: 'l', label: '가로' },
+                              { key: 'w', label: '세로' },
+                              { key: 'h', label: '높이' }
+                            ] as const).map(({ key, label }) => (
+                              <div key={key} className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
+                                <div className="flex items-center rounded-xl bg-slate-100 p-1">
+                                  <button onClick={() => updateCompareDim('right', key, compareRightDims[key] - 1)} className="w-7 h-7 font-bold">-</button>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={10}
+                                    value={compareRightDims[key]}
+                                    onChange={e => updateCompareDim('right', key, Number(e.target.value))}
+                                    className="w-10 bg-transparent text-center text-[10px] font-black outline-none"
+                                  />
+                                  <button onClick={() => updateCompareDim('right', key, compareRightDims[key] + 1)} className="w-7 h-7 font-bold">+</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2 pt-2 border-t border-slate-100">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">접기 제어</span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={compareFoldRight}
+                            onChange={e => setCompareFoldRight(Number(e.target.value))}
+                            className="h-1.5 w-full rounded-lg bg-slate-100 accent-blue-500"
+                          />
+                          <div className="text-right text-[9px] font-bold text-slate-400">{compareFoldRight}%</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>

@@ -9,7 +9,7 @@ interface NetCanvasProps {
   interactive?: boolean;
   foldProgress?: number;
   transparency?: number;
-  activeParallelPairs?: Set<number>; 
+  activeParallelPairs?: Set<number>;
   showGrid?: boolean;
   rotation?: { x: number; y: number };
   panOffset?: { x: number; y: number };
@@ -26,7 +26,11 @@ interface NetCanvasProps {
   showEdgeMatches?: boolean;
   diceStyle?: 'none' | 'number' | 'dot';
   animationDuration?: number;
+  showArea?: boolean;
+  showBasePerimeter?: boolean;
 }
+
+const BASE_EDGE_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#a855f7']; // 빨, 파, 초, 보라
 
 const SIDE_COLORS = [
   '#ef4444', // 쌍 0 (빨강)
@@ -44,11 +48,11 @@ const DICE_MAP: Record<number, number> = {
   4: 3, 5: 4
 };
 
-const PerspectiveWireframe: React.FC<{ 
+const PerspectiveWireframe: React.FC<{
   face: Face;
   isFoldLine: (dir: Direction) => boolean;
   foldProgress: number;
-  skinType: 'outward' | 'inward'; 
+  skinType: 'outward' | 'inward';
   showEdgeMatches?: boolean;
   scale: number;
   diceStyle?: 'none' | 'number' | 'dot';
@@ -57,7 +61,11 @@ const PerspectiveWireframe: React.FC<{
     fold: string;
     muted: string;
   };
-}> = ({ face, isFoldLine, foldProgress, skinType, showEdgeMatches, scale, diceStyle, linePalette }) => {
+  showArea?: boolean;
+  showBasePerimeter?: boolean;
+  baseEdgeColors?: Record<Direction, string | null>;
+  matchedEdgeColors?: Record<Direction, string | null>;
+}> = ({ face, isFoldLine, foldProgress, skinType, showEdgeMatches, scale, diceStyle, linePalette, baseEdgeColors, matchedEdgeColors }) => {
   const isInward = skinType === 'inward';
   const isFlat = foldProgress === 0;
   const directions: Direction[] = ['up', 'down', 'left', 'right'];
@@ -80,45 +88,45 @@ const PerspectiveWireframe: React.FC<{
     const faceSize = Math.min(face.width, face.height) * scale;
     let sizeRatio = 0.18;
     let color = '#334155';
-    
+
     if (value === 1) {
       sizeRatio = 0.35;
-      color = '#ef4444'; 
+      color = '#ef4444';
     }
 
     const dotSize = Math.max(2, faceSize * sizeRatio);
     const dotBaseStyle: React.CSSProperties = {
-        position: 'absolute',
-        width: dotSize,
-        height: dotSize,
-        backgroundColor: color,
-        borderRadius: '50%',
-        transform: 'translate(-50%, -50%)',
+      position: 'absolute',
+      width: dotSize,
+      height: dotSize,
+      backgroundColor: color,
+      borderRadius: '50%',
+      transform: 'translate(-50%, -50%)',
     };
 
     const pos = {
-        tl: { top: '25%', left: '25%' },
-        tr: { top: '25%', left: '75%' },
-        ml: { top: '50%', left: '25%' },
-        mm: { top: '50%', left: '50%' },
-        mr: { top: '50%', left: '75%' },
-        bl: { top: '75%', left: '25%' },
-        br: { top: '75%', left: '75%' },
+      tl: { top: '25%', left: '25%' },
+      tr: { top: '25%', left: '75%' },
+      ml: { top: '50%', left: '25%' },
+      mm: { top: '50%', left: '50%' },
+      mr: { top: '50%', left: '75%' },
+      bl: { top: '75%', left: '25%' },
+      br: { top: '75%', left: '75%' },
     };
 
     const dots: React.CSSProperties[] = [];
     switch (value) {
-        case 1: dots.push(pos.mm); break;
-        case 2: dots.push(pos.tl, pos.br); break;
-        case 3: dots.push(pos.tl, pos.mm, pos.br); break;
-        case 4: dots.push(pos.tl, pos.tr, pos.bl, pos.br); break;
-        case 5: dots.push(pos.tl, pos.tr, pos.mm, pos.bl, pos.br); break;
-        case 6: dots.push(pos.tl, pos.tr, pos.ml, pos.mr, pos.bl, pos.br); break;
-        default: dots.push(pos.mm); break;
+      case 1: dots.push(pos.mm); break;
+      case 2: dots.push(pos.tl, pos.br); break;
+      case 3: dots.push(pos.tl, pos.mm, pos.br); break;
+      case 4: dots.push(pos.tl, pos.tr, pos.bl, pos.br); break;
+      case 5: dots.push(pos.tl, pos.tr, pos.mm, pos.bl, pos.br); break;
+      case 6: dots.push(pos.tl, pos.tr, pos.ml, pos.mr, pos.bl, pos.br); break;
+      default: dots.push(pos.mm); break;
     }
 
     return dots.map((p, i) => (
-        <div key={i} style={{ ...dotBaseStyle, ...p }} />
+      <div key={i} style={{ ...dotBaseStyle, ...p }} />
     ));
   };
 
@@ -126,7 +134,7 @@ const PerspectiveWireframe: React.FC<{
     <div style={layerStyle}>
       {directions.map(dir => {
         let queryDir = dir;
-        if (!isInward) { 
+        if (!isInward) {
           if (dir === 'left') queryDir = 'right';
           else if (dir === 'right') queryDir = 'left';
         }
@@ -136,24 +144,40 @@ const PerspectiveWireframe: React.FC<{
         const isMatched = showEdgeMatches && matchId !== undefined;
 
         let borderStyle: 'solid' | 'dashed' = 'solid';
-        let weight = isFlat ? (2.0 * sw) : (1.0 * sw); 
+        let weight = isFlat ? (2.0 * sw) : (1.0 * sw);
         let color = linePalette.solid;
+        let isBaseEdgeSpecial = false;
 
-        if (isFlat) {
-          borderStyle = fold ? 'dashed' : 'solid';
-          // 테두리는 굵게, 접는 선은 중간 굵기로 표현
-          weight = fold ? (1.5 * sw) : (3.5 * sw); 
-          color = fold ? linePalette.fold : linePalette.solid;
-        } else {
-          borderStyle = isInward ? 'solid' : 'dashed';
-          weight = isInward ? (1.2 * sw) : (1.0 * sw); 
-          color = isInward ? linePalette.solid : linePalette.muted;
+        // 밑면 둘레-옆면 시각화 증명 모드
+        if (baseEdgeColors?.[dir]) {
+          color = baseEdgeColors[dir]!;
+          weight = 5 * sw;
+          borderStyle = 'solid';
+          isBaseEdgeSpecial = true;
+        } else if (matchedEdgeColors?.[queryDir]) { // 여기서 주의: matchId는 face.edgeMatchIds[queryDir]에 저장됨
+          color = matchedEdgeColors[queryDir]!;
+          weight = 5 * sw;
+          borderStyle = 'solid';
+          isBaseEdgeSpecial = true;
         }
 
-        if (isMatched) {
-          borderStyle = 'solid';
-          weight = 5 * sw; 
-          color = MATCH_COLORS[matchId % MATCH_COLORS.length];
+        if (!isBaseEdgeSpecial) {
+          if (isFlat) {
+            borderStyle = fold ? 'dashed' : 'solid';
+            // 테두리는 굵게, 접는 선은 중간 굵기로 표현
+            weight = fold ? (1.5 * sw) : (3.5 * sw);
+            color = fold ? linePalette.fold : linePalette.solid;
+          } else {
+            borderStyle = isInward ? 'solid' : 'dashed';
+            weight = isInward ? (1.2 * sw) : (1.0 * sw);
+            color = isInward ? linePalette.solid : linePalette.muted;
+          }
+
+          if (isMatched) {
+            borderStyle = 'solid';
+            weight = 5 * sw;
+            color = MATCH_COLORS[matchId % MATCH_COLORS.length];
+          }
         }
 
         const offset = -weight / 2;
@@ -161,21 +185,21 @@ const PerspectiveWireframe: React.FC<{
           position: 'absolute',
           pointerEvents: 'none',
           boxSizing: 'border-box',
-          zIndex: isMatched ? 10 : (borderStyle === 'solid' ? 5 : 1)
+          zIndex: isBaseEdgeSpecial ? 40 : (isMatched ? 10 : (borderStyle === 'solid' ? 5 : 1))
         };
 
         if (dir === 'up' || dir === 'down') {
-            edgeStyle.height = `${weight}px`;
-            edgeStyle.left = `${offset}px`; 
-            edgeStyle.right = `${offset}px`;
-            if (dir === 'up') edgeStyle.top = `${offset}px`;
-            else edgeStyle.bottom = `${offset}px`;
+          edgeStyle.height = `${weight}px`;
+          edgeStyle.left = `${offset}px`;
+          edgeStyle.right = `${offset}px`;
+          if (dir === 'up') edgeStyle.top = `${offset}px`;
+          else edgeStyle.bottom = `${offset}px`;
         } else {
-            edgeStyle.width = `${weight}px`;
-            edgeStyle.top = `${offset}px`;
-            edgeStyle.bottom = `${offset}px`;
-            if (dir === 'left') edgeStyle.left = `${offset}px`;
-            else edgeStyle.right = `${offset}px`;
+          edgeStyle.width = `${weight}px`;
+          edgeStyle.top = `${offset}px`;
+          edgeStyle.bottom = `${offset}px`;
+          if (dir === 'left') edgeStyle.left = `${offset}px`;
+          else edgeStyle.right = `${offset}px`;
         }
 
         if (borderStyle === 'dashed') {
@@ -189,30 +213,30 @@ const PerspectiveWireframe: React.FC<{
             edgeStyle.backgroundSize = `${weight}px ${dashSize + gapSize}px`;
           }
         } else {
-           edgeStyle.backgroundColor = color;
+          edgeStyle.backgroundColor = color;
         }
-        
+
         return <div key={dir} style={edgeStyle} />;
       })}
 
       {diceStyle && diceStyle !== 'none' && isInward && scale > 10 && (
         <div style={{ position: 'absolute', inset: 0, transform: `translateZ(1px)`, backfaceVisibility: 'visible', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {diceStyle === 'number' ? (
-                 <span style={{ 
-                    fontSize: `${Math.min(face.width, face.height) * scale * 0.5}px`, 
-                    fontWeight: 900, 
-                    color: diceValue === 1 ? '#ef4444' : '#334155',
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                 }}>
-                    {diceValue}
-                </span>
-            ) : (
-                <div style={{ width: '100%', height: '100%', position: 'relative' }}>{renderDiceDots(diceValue)}</div>
-            )}
+          {diceStyle === 'number' ? (
+            <span style={{
+              fontSize: `${Math.min(face.width, face.height) * scale * 0.5}px`,
+              fontWeight: 900,
+              color: diceValue === 1 ? '#ef4444' : '#334155',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {diceValue}
+            </span>
+          ) : (
+            <div style={{ width: '100%', height: '100%', position: 'relative' }}>{renderDiceDots(diceValue)}</div>
+          )}
         </div>
       )}
     </div>
@@ -239,97 +263,139 @@ const FoldableFace: React.FC<{
     fold: string;
     muted: string;
   };
-}> = ({ 
-  face, allFaces, scale, foldAngle, faceOpacity, 
+  showArea?: boolean;
+  showBasePerimeter?: boolean;
+  baseFaceId?: number;
+  baseEdgeConfig?: Record<number, string>; // matchId -> color
+}> = ({
+  face, allFaces, scale, foldAngle, faceOpacity,
   interactive, isFlat, activeParallelPairs,
-  faceColors, onFaceClick, isPaintingMode, showEdgeMatches, foldProgress, diceStyle, linePalette
+  faceColors, onFaceClick, isPaintingMode, showEdgeMatches, foldProgress, diceStyle, linePalette, showArea, showBasePerimeter, baseFaceId, baseEdgeConfig
 }) => {
-  const children = allFaces.filter(f => f.parentId === face.id);
-  
-  let bgFill = faceColors?.[face.id];
-  if (!bgFill && activeParallelPairs && face.sideId !== undefined) {
-    const pairId = Math.floor(face.sideId / 2);
-    if (activeParallelPairs.has(pairId)) {
-      bgFill = SIDE_COLORS[pairId];
+    const children = allFaces.filter(f => f.parentId === face.id);
+
+    let bgFill = faceColors?.[face.id];
+    if (showBasePerimeter && face.id === baseFaceId) {
+      bgFill = '#fef08a'; // 밑면은 연노랑색 강조
+    } else if (!bgFill && activeParallelPairs && face.sideId !== undefined) {
+      const pairId = Math.floor(face.sideId / 2);
+      if (activeParallelPairs.has(pairId)) {
+        bgFill = SIDE_COLORS[pairId];
+      }
     }
-  }
-  if (!bgFill) bgFill = '#ffffff';
+    if (!bgFill) bgFill = '#ffffff';
 
-  const isFoldLine = (dir: Direction) => {
-    const sideTouchingParent: Direction | null = 
+    const isFoldLine = (dir: Direction) => {
+      const sideTouchingParent: Direction | null =
         face.attachDir === 'right' ? 'left' :
-        face.attachDir === 'left' ? 'right' :
-        face.attachDir === 'up' ? 'down' :
-        face.attachDir === 'down' ? 'up' : null;
-    return dir === sideTouchingParent || children.some(c => c.attachDir === dir);
-  };
+          face.attachDir === 'left' ? 'right' :
+            face.attachDir === 'up' ? 'down' :
+              face.attachDir === 'down' ? 'up' : null;
+      return dir === sideTouchingParent || children.some(c => c.attachDir === dir);
+    };
 
-  return (
-    <div 
+    const baseEdgeColors: Record<Direction, string | null> = { up: null, down: null, left: null, right: null };
+    const matchedEdgeColors: Record<Direction, string | null> = { up: null, down: null, left: null, right: null };
+
+    if (showBasePerimeter) {
+      if (face.id === baseFaceId) {
+        (['up', 'right', 'down', 'left'] as Direction[]).forEach((dir, i) => {
+          baseEdgeColors[dir] = BASE_EDGE_COLORS[i];
+        });
+      } else if (baseEdgeConfig && face.edgeMatchIds) {
+        (['up', 'right', 'down', 'left'] as Direction[]).forEach(dir => {
+          const mId = (face.edgeMatchIds as any)[dir];
+          if (mId !== undefined && baseEdgeConfig[mId]) {
+            matchedEdgeColors[dir] = baseEdgeConfig[mId];
+          }
+        });
+      }
+    }
+
+    return (
+      <div
         className="net-face-target"
         style={{
-            position: 'absolute', top: 0, left: 0,
-            width: face.width * scale, height: face.height * scale,
-            transformStyle: 'preserve-3d',
-            cursor: isPaintingMode ? 'copy' : 'default',
-            pointerEvents: 'auto',
-        }} 
-        onClick={(e) => { 
-            e.stopPropagation(); 
-            if (interactive) onFaceClick?.(face.id); 
+          position: 'absolute', top: 0, left: 0,
+          width: face.width * scale, height: face.height * scale,
+          transformStyle: 'preserve-3d',
+          cursor: isPaintingMode ? 'copy' : 'default',
+          pointerEvents: 'auto',
         }}
-    >
-      <div style={{ position: 'absolute', inset: 0, backgroundColor: bgFill, opacity: faceOpacity, backfaceVisibility: 'visible' }} />
-      <PerspectiveWireframe face={face} isFoldLine={isFoldLine} foldProgress={foldProgress} skinType="inward" showEdgeMatches={showEdgeMatches} scale={scale} diceStyle={diceStyle} linePalette={linePalette} />
-      <PerspectiveWireframe face={face} isFoldLine={isFoldLine} foldProgress={foldProgress} skinType="outward" showEdgeMatches={showEdgeMatches} scale={scale} diceStyle={'none'} linePalette={linePalette} />
-      
-      {children.map(child => {
-        let origin = '', transform = '', pos: React.CSSProperties = {};
-        const isFolded = !isFlat;
-        const currentAngle = foldProgress >= 100 ? 90 : foldAngle;
-        switch (child.attachDir) {
-          case 'right': pos = { left: '100%' }; origin = 'left center'; transform = isFolded ? `rotateY(${currentAngle}deg)` : 'none'; break;
-          case 'left': pos = { right: '100%' }; origin = 'right center'; transform = isFolded ? `rotateY(${-currentAngle}deg)` : 'none'; break;
-          case 'down': pos = { top: '100%' }; origin = 'top center'; transform = isFolded ? `rotateX(${-currentAngle}deg)` : 'none'; break;
-          case 'up': pos = { bottom: '100%' }; origin = 'bottom center'; transform = isFolded ? `rotateX(${currentAngle}deg)` : 'none'; break;
-        }
-        return (
-          <div key={child.id} style={{
+        onClick={(e) => {
+          e.stopPropagation();
+          if (interactive) onFaceClick?.(face.id);
+        }}
+      >
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: bgFill, opacity: faceOpacity, backfaceVisibility: 'visible' }} />
+        <PerspectiveWireframe face={face} isFoldLine={isFoldLine} foldProgress={foldProgress} skinType="inward" showEdgeMatches={showEdgeMatches} scale={scale} diceStyle={diceStyle} linePalette={linePalette} baseEdgeColors={baseEdgeColors} matchedEdgeColors={matchedEdgeColors} />
+        <PerspectiveWireframe face={face} isFoldLine={isFoldLine} foldProgress={foldProgress} skinType="outward" showEdgeMatches={showEdgeMatches} scale={scale} diceStyle={'none'} linePalette={linePalette} baseEdgeColors={baseEdgeColors} matchedEdgeColors={matchedEdgeColors} />
+
+        {showArea && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+            transform: `translateZ(2px)`,
+            fontSize: `${Math.max(12, Math.min(face.width, face.height) * scale * 0.2)}px`,
+            fontWeight: 900,
+            color: '#0f172a',
+            whiteSpace: 'nowrap',
+            textShadow: '0px 0px 4px rgba(255,255,255,0.8), 0px 0px 2px rgba(255,255,255,1)',
+            backfaceVisibility: 'visible',
+            zIndex: 20
+          }}>
+            {face.width} × {face.height} = {face.width * face.height}
+          </div>
+        )}
+
+        {children.map(child => {
+          let origin = '', transform = '', pos: React.CSSProperties = {};
+          const isFolded = !isFlat;
+          const currentAngle = foldProgress >= 100 ? 90 : foldAngle;
+          switch (child.attachDir) {
+            case 'right': pos = { left: '100%' }; origin = 'left center'; transform = isFolded ? `rotateY(${currentAngle}deg)` : 'none'; break;
+            case 'left': pos = { right: '100%' }; origin = 'right center'; transform = isFolded ? `rotateY(${-currentAngle}deg)` : 'none'; break;
+            case 'down': pos = { top: '100%' }; origin = 'top center'; transform = isFolded ? `rotateX(${-currentAngle}deg)` : 'none'; break;
+            case 'up': pos = { bottom: '100%' }; origin = 'bottom center'; transform = isFolded ? `rotateX(${currentAngle}deg)` : 'none'; break;
+          }
+          return (
+            <div key={child.id} style={{
               position: 'absolute', width: child.width * scale, height: child.height * scale,
               transformOrigin: origin, transform: transform, transformStyle: 'preserve-3d',
               transition: isFlat ? 'none' : 'transform 0.1s linear', ...pos
             }}>
-            <FoldableFace face={child} allFaces={allFaces} scale={scale} foldAngle={foldAngle} faceOpacity={faceOpacity} interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs} faceColors={faceColors} onFaceClick={onFaceClick} isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches} foldProgress={foldProgress} diceStyle={diceStyle} linePalette={linePalette} />
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+              <FoldableFace face={child} allFaces={allFaces} scale={scale} foldAngle={foldAngle} faceOpacity={faceOpacity} interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs} faceColors={faceColors} onFaceClick={onFaceClick} isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches} foldProgress={foldProgress} diceStyle={diceStyle} linePalette={linePalette} showArea={showArea} showBasePerimeter={showBasePerimeter} baseFaceId={baseFaceId} baseEdgeConfig={baseEdgeConfig} />
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
-export const NetCanvas: React.FC<NetCanvasProps> = ({ 
-    net, scale = 40, interactive = false, foldProgress = 0, 
-    transparency = 0.2, activeParallelPairs, showGrid = true, 
-    rotation = { x: 0, y: 0 }, panOffset = { x: 0, y: 0 },
-    canvasSize,
-    lineColor,
-    foldLineColor,
-    mutedLineColor,
-    transparentBackground = false,
-    isAnimatingRotation = false,
-    isRotating = false, faceColors, onFaceClick, isPaintingMode, showEdgeMatches,
-    diceStyle = 'none',
-    animationDuration = 1.5
+export const NetCanvas: React.FC<NetCanvasProps> = ({
+  net, scale = 40, interactive = false, foldProgress = 0,
+  transparency = 0.2, activeParallelPairs, showGrid = true,
+  rotation = { x: 0, y: 0 }, panOffset = { x: 0, y: 0 },
+  canvasSize,
+  lineColor,
+  foldLineColor,
+  mutedLineColor,
+  transparentBackground = false,
+  isAnimatingRotation = false,
+  isRotating = false, faceColors, onFaceClick, isPaintingMode, showEdgeMatches,
+  diceStyle = 'none',
+  animationDuration = 1.5,
+  showArea = false,
+  showBasePerimeter = false
 }) => {
   const isFlat = foldProgress === 0;
   const faceOpacity = 1 - transparency;
-  const zShift = scale * (foldProgress / 100) * -1.5; 
+  const zShift = scale * (foldProgress / 100) * -1.5;
   const { rootFace, baseOffset } = getNetAlignment(net, scale);
   const gridOffset = rootFace
     ? {
-        x: baseOffset.x - (rootFace.width * scale) / 2,
-        y: baseOffset.y - (rootFace.height * scale) / 2
-      }
+      x: baseOffset.x - (rootFace.width * scale) / 2,
+      y: baseOffset.y - (rootFace.height * scale) / 2
+    }
     : { x: 0, y: 0 };
   const sceneTransform = `translate(${panOffset.x + baseOffset.x}px, ${panOffset.y + baseOffset.y}px) translateZ(${zShift}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
   const gridLineOffset = 0.5;
@@ -342,14 +408,31 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
     muted: mutedLineColor ?? '#bbbbbb'
   };
 
+  // Base Edge 매칭 준비 작업
+  let baseFaceId: number | undefined;
+  let baseEdgeConfig: Record<number, string> = {};
+  if (showBasePerimeter && net.faces.length > 0) {
+    // 전개도 상에서 가장 가운데 있거나 0번인 면을 밑면으로 잡음
+    baseFaceId = 0;
+    const bFace = net.faces.find(f => f.id === baseFaceId);
+    if (bFace && bFace.edgeMatchIds) {
+      (['up', 'right', 'down', 'left'] as Direction[]).forEach((dir, i) => {
+        const matchId = (bFace.edgeMatchIds as any)[dir];
+        if (matchId !== undefined) {
+          baseEdgeConfig[matchId] = BASE_EDGE_COLORS[i];
+        }
+      });
+    }
+  }
+
   return (
     <div
       className={`w-full h-full relative flex items-center justify-center overflow-hidden ${transparentBackground ? 'bg-transparent' : 'bg-white'}`}
       style={{ perspective: '6000px' }}
     >
-      
+
       {showGrid && (
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: `
@@ -365,27 +448,31 @@ export const NetCanvas: React.FC<NetCanvasProps> = ({
       )}
 
       <div className="absolute w-0 h-0" style={{ transformStyle: 'preserve-3d' }}>
-         <div style={{
-                position: 'absolute',
-                transform: sceneTransform, 
-                transformStyle: 'preserve-3d', 
-                transition: isAnimatingRotation ? `transform ${animationDuration}s cubic-bezier(0.1, 0.7, 0.1, 1)` : (isRotating ? 'none' : 'transform 0.1s linear'),
-            }}>
-             {rootFace && (
-               <div style={{ position: 'absolute', left: -rootFace.width * scale / 2, top: -rootFace.height * scale / 2, transformStyle: 'preserve-3d' }}>
-                 <FoldableFace 
-                  face={rootFace} allFaces={net.faces} scale={scale} 
-                  foldAngle={foldProgress * 0.9} faceOpacity={faceOpacity} 
-                  interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs}
-                  faceColors={faceColors} onFaceClick={onFaceClick}
-                  isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches}
-                  foldProgress={foldProgress}
-                  diceStyle={diceStyle}
-                  linePalette={linePalette}
-                />
-               </div>
-             )}
-         </div>
+        <div style={{
+          position: 'absolute',
+          transform: sceneTransform,
+          transformStyle: 'preserve-3d',
+          transition: isAnimatingRotation ? `transform ${animationDuration}s cubic-bezier(0.1, 0.7, 0.1, 1)` : (isRotating ? 'none' : 'transform 0.1s linear'),
+        }}>
+          {rootFace && (
+            <div style={{ position: 'absolute', left: -rootFace.width * scale / 2, top: -rootFace.height * scale / 2, transformStyle: 'preserve-3d' }}>
+              <FoldableFace
+                face={rootFace} allFaces={net.faces} scale={scale}
+                foldAngle={foldProgress * 0.9} faceOpacity={faceOpacity}
+                interactive={interactive} isFlat={isFlat} activeParallelPairs={activeParallelPairs}
+                faceColors={faceColors} onFaceClick={onFaceClick}
+                isPaintingMode={isPaintingMode} showEdgeMatches={showEdgeMatches}
+                foldProgress={foldProgress}
+                diceStyle={diceStyle}
+                linePalette={linePalette}
+                showArea={showArea}
+                showBasePerimeter={showBasePerimeter}
+                baseFaceId={baseFaceId}
+                baseEdgeConfig={baseEdgeConfig}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -42,52 +42,52 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
 
     const L = (2 * Math.PI * rScaled) / N; // Arc length per piece
     const rectTotalWidth = (N / 2) * L;
-    const rectLeftEdge = centerX - rectTotalWidth / 2;
+    const actualLeftEdge = centerX - rectTotalWidth / 2;
+    const rectLeftEdgeBase = actualLeftEdge - 0.5 * L;
 
     const theta = (2 * Math.PI) / N;
     // SVGs rotate around (0,0), our tip is at (0,0)
-    // Points down by default (angle 0 is +Y axis if we use x=sin, y=cos)
     const x1 = rScaled * Math.sin(-theta / 2);
     const y1 = rScaled * Math.cos(-theta / 2);
     const x2 = rScaled * Math.sin(theta / 2);
     const y2 = rScaled * Math.cos(theta / 2);
 
-    // Ensure A command sweep flag is correct: from negative X to positive X in +Y space
-    // For SVG, Y goes down. Top-left is 0,0.
-    // Tip at (0,0). x1 is negative, y1 is positive.
-    // x2 is positive, y2 is positive.
-    // So we sweep counter-clockwise visually, which in SVG with +Y down means sweep-flag=0.
-    const pathD = `M 0 0 L ${x1} ${y1} A ${rScaled} ${rScaled} 0 0 0 ${x2} ${y2} Z`;
+    const pathDFull = `M 0 0 L ${x1} ${y1} A ${rScaled} ${rScaled} 0 0 0 ${x2} ${y2} Z`;
+    const pathDHalf1 = `M 0 0 L ${x1} ${y1} A ${rScaled} ${rScaled} 0 0 0 0 ${rScaled} Z`;
+    const pathDHalf2 = `M 0 0 L 0 ${rScaled} A ${rScaled} ${rScaled} 0 0 0 ${x2} ${y2} Z`;
 
     const pieces = useMemo(() => {
         const arr = [];
         for (let i = 0; i < N; i++) {
-            // Circle state (p=0)
             const startRot = i * (360 / N);
             const startX = centerX;
             const startY = centerY;
 
-            // Rectangle state (p=1)
             const isEven = i % 2 === 0;
-            // Even pieces point UP (rotate 180), odd point DOWN (rotate 0)
-            // But if startRot is e.g. 270, and we want 180, we want the shortest path?
-            // Let's just hardcode target rotation
             let targetRot = isEven ? 180 : 0;
 
-            // To prevent weird spinning: find equivalent targetRot modulo 360 that is closest to startRot
-            // e.g., if startRot = 270, targetRot = 180 (diff = -90). 
             while (targetRot - startRot > 180) targetRot -= 360;
             while (targetRot - startRot < -180) targetRot += 360;
 
-            const targetX = rectLeftEdge + (i * 0.5 + 0.5) * L;
+            const targetX = rectLeftEdgeBase + (i * 0.5 + 0.5) * L;
             const targetY = isEven ? centerY + rScaled / 2 : centerY - rScaled / 2;
 
-            arr.push({
-                startRot, targetRot, startX, startY, targetX, targetY, isEven
-            });
+            if (i === 0) {
+                // 완벽한 직사각형을 만들기 위해 첫 번째(기수) 조각을 두 개의 반쪽 조각으로 나눔
+                arr.push({
+                    startRot, targetRot, startX, startY, targetX, targetY, isEven, type: 'half1'
+                });
+                arr.push({
+                    startRot, targetRot, startX, startY, targetX: targetX + (N / 2) * L, targetY, isEven, type: 'half2'
+                });
+            } else {
+                arr.push({
+                    startRot, targetRot, startX, startY, targetX, targetY, isEven, type: 'full'
+                });
+            }
         }
         return arr;
-    }, [N, centerX, centerY, rectLeftEdge, L, rScaled]);
+    }, [N, centerX, centerY, rectLeftEdgeBase, L, rScaled]);
 
     return (
         <div
@@ -117,10 +117,14 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
 
                     const transform = `translate(${currentX}, ${currentY}) rotate(${currentRot})`;
 
+                    let d = pathDFull;
+                    if (piece.type === 'half1') d = pathDHalf1;
+                    else if (piece.type === 'half2') d = pathDHalf2;
+
                     return (
                         <path
                             key={i}
-                            d={pathD}
+                            d={d}
                             fill={piece.isEven ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.2)'}
                             stroke={lineColor}
                             strokeWidth="1.5"
@@ -136,36 +140,36 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                 <g style={{ opacity: Math.max(0, (p - 0.8) * 5), transition: 'opacity 0.2s' }}>
                     {/* Width label: πr */}
                     <line
-                        x1={rectLeftEdge} y1={centerY + rScaled / 2 + 30}
-                        x2={rectLeftEdge + rectTotalWidth} y2={centerY + rScaled / 2 + 30}
+                        x1={actualLeftEdge} y1={centerY + rScaled / 2 + 30}
+                        x2={actualLeftEdge + rectTotalWidth} y2={centerY + rScaled / 2 + 30}
                         stroke="#ef4444" strokeWidth="2" strokeDasharray="4 4"
                     />
                     <text
-                        x={rectLeftEdge + rectTotalWidth / 2} y={centerY + rScaled / 2 + 50}
+                        x={actualLeftEdge + rectTotalWidth / 2} y={centerY + rScaled / 2 + 50}
                         fill="#ef4444" fontSize="14" fontWeight="bold" textAnchor="middle"
                     >
-                        원주의 ½ (반원) = r × π
+                        원주의 ½ (반원) = {radius} × π
                     </text>
 
                     {/* Height label: r */}
                     <line
-                        x1={rectLeftEdge - 30} y1={centerY - rScaled / 2}
-                        x2={rectLeftEdge - 30} y2={centerY + rScaled / 2}
+                        x1={actualLeftEdge - 30} y1={centerY - rScaled / 2}
+                        x2={actualLeftEdge - 30} y2={centerY + rScaled / 2}
                         stroke="#22c55e" strokeWidth="2" strokeDasharray="4 4"
                     />
                     <text
-                        x={rectLeftEdge - 40} y={centerY + 5}
+                        x={actualLeftEdge - 40} y={centerY + 5}
                         fill="#22c55e" fontSize="14" fontWeight="bold" textAnchor="end"
                     >
-                        반지름(r)
+                        반지름({radius})
                     </text>
 
                     {/* Area label */}
                     <text
-                        x={rectLeftEdge + rectTotalWidth / 2} y={centerY - rScaled / 2 - 20}
+                        x={actualLeftEdge + rectTotalWidth / 2} y={centerY - rScaled / 2 - 20}
                         fill="#334155" fontSize="16" fontWeight="900" textAnchor="middle"
                     >
-                        원의 넓이 = (r × π) × r = πr²
+                        원의 넓이 = ({radius} × π) × {radius} = {radius * radius}π
                     </text>
                 </g>
             </svg>

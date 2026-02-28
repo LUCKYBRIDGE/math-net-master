@@ -476,6 +476,12 @@ const App: React.FC = () => {
     setBasePerimeterFaceId(null);
     setDiceStyle('none');
 
+    // 원 / 원기둥 보조 도구 모드 초기화
+    setCircleDisplayMode('none');
+    setCylinderActionMode('none');
+    setShowCylinderSegments(false);
+    setHighlightPerimeter(false);
+
     // 모드(도형 탭)가 바뀔 때 육면체 계열이 아니면 명확히 null로 초기화하여 이전 렌더링 내역을 없앰
     if (mode !== 'cube' && mode !== 'cuboid') {
       setSelectedNet(null);

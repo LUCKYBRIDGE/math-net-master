@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Dimensions, NetData } from './types';
 import { generateAllNets } from './utils/netGenerator';
 import { NetCanvas } from './components/NetCanvas';
+import { CylinderCanvas } from './components/CylinderCanvas';
 import { CompareCanvas } from './components/CompareCanvas';
 
 const DEFAULT_ROTATION = { x: 0, y: 0 };
@@ -12,9 +13,11 @@ const PAINT_PALETTE = ['#ef4444', '#3b82f6', '#22c55e', '#fde047', '#a855f7', '#
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'single' | 'compare'>('single');
-  const [mode, setMode] = useState<'cube' | 'cuboid' | 'prism_tri' | 'pyramid' | 'cylinder'>('cube');
+  const [mode, setMode] = useState<'cube' | 'cuboid' | 'prism_tri' | 'pyramid' | 'cylinder' | 'cone'>('cube');
   const [prismTriangleType, setPrismTriangleType] = useState<'30-60-90' | '45-45-90' | '60-60-60'>('60-60-60');
   const [pyramidBaseType, setPyramidBaseType] = useState<'triangle' | 'square' | 'pentagon'>('triangle');
+  const [cylinderRadius, setCylinderRadius] = useState(2);
+  const [cylinderHeight, setCylinderHeight] = useState(4);
   const [cubeSize] = useState(3);
   const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [selectedNet, setSelectedNet] = useState<NetData | null>(null);
@@ -879,10 +882,16 @@ const App: React.FC = () => {
               원기둥
             </button>
             <button
+              onClick={() => { setActiveTab('single'); setMode('cone'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cone' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            >
+              원뿔
+            </button>
+            <button
               onClick={() => setActiveTab('compare')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'compare' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
             >
-              비교모드
+              비교모드(직육면체)
             </button>
           </div>
         </div>
@@ -977,6 +986,31 @@ const App: React.FC = () => {
                       <button onClick={() => setPyramidBaseType('triangle')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${pyramidBaseType === 'triangle' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>삼각뿔</button>
                       <button onClick={() => setPyramidBaseType('square')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${pyramidBaseType === 'square' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>사각뿔</button>
                       <button onClick={() => setPyramidBaseType('pentagon')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${pyramidBaseType === 'pentagon' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>오각뿔</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 원기둥 크기 설정 */}
+                {mode === 'cylinder' && (
+                  <div className="space-y-2 pt-2 border-t border-slate-50">
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">원기둥 크기</span>
+                    <div className="flex gap-2">
+                      <div className="flex-1 bg-slate-100 rounded-xl px-3 py-2 flex flex-col items-center">
+                        <span className="text-[9px] font-black text-slate-400">반지름(r)</span>
+                        <div className="flex items-center gap-2 mt-1 w-full justify-between">
+                          <button onClick={() => setCylinderRadius(prev => Math.max(1, prev - 1))} className="w-5 h-5 bg-white rounded-md shadow-sm text-slate-600 font-bold leading-none">-</button>
+                          <span className="font-black text-slate-700">{cylinderRadius}</span>
+                          <button onClick={() => setCylinderRadius(prev => Math.min(6, prev + 1))} className="w-5 h-5 bg-white rounded-md shadow-sm text-slate-600 font-bold leading-none">+</button>
+                        </div>
+                      </div>
+                      <div className="flex-1 bg-slate-100 rounded-xl px-3 py-2 flex flex-col items-center">
+                        <span className="text-[9px] font-black text-slate-400">높이(h)</span>
+                        <div className="flex items-center gap-2 mt-1 w-full justify-between">
+                          <button onClick={() => setCylinderHeight(prev => Math.max(2, prev - 1))} className="w-5 h-5 bg-white rounded-md shadow-sm text-slate-600 font-bold leading-none">-</button>
+                          <span className="font-black text-slate-700">{cylinderHeight}</span>
+                          <button onClick={() => setCylinderHeight(prev => Math.min(10, prev + 1))} className="w-5 h-5 bg-white rounded-md shadow-sm text-slate-600 font-bold leading-none">+</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1144,11 +1178,34 @@ const App: React.FC = () => {
                     <NetCanvas net={selectedNet} scale={computedScale} interactive={true} foldProgress={foldProgress} transparency={transparency} activeParallelPairs={activePairs} showGrid={showGrid} gridOpacity={gridOpacity} rotation={viewRotation} panOffset={panOffset} canvasSize={workspaceSize} isAnimatingRotation={isAnimatingRotation} isRotating={isCanvasInteracting && interactionMode === 'rotate'} faceColors={faceColors} onFaceClick={handleFaceClick} isPaintingMode={!!selectedPaintColor} showEdgeMatches={showEdgeMatches} diceStyle={diceStyle} animationDuration={animDuration} showArea={showArea} showBasePerimeter={showBasePerimeter} basePerimeterFaceId={basePerimeterFaceId} gridUnitValue={gridUnitValue} gridUnitType={gridUnitType} />
                   </div>
                 </div>
-              ) : (mode === 'prism_tri' || mode === 'pyramid' || mode === 'cylinder') ? (
+              ) : mode === 'cylinder' ? (
+                <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
+                  <div ref={workspaceRef} onMouseDown={handleCanvasDown} onTouchStart={handleCanvasDown}
+                    className={`flex-1 flex items-center justify-center relative overflow-hidden touch-none ${isCanvasInteracting ? (interactionMode === 'rotate' ? 'cursor-grabbing' : 'cursor-move') : (activeTool === 'move' ? 'cursor-move' : 'cursor-grab')}`}>
+                    <CylinderCanvas
+                      radius={cylinderRadius}
+                      height={cylinderHeight}
+                      scale={computedScale}
+                      foldProgress={foldProgress}
+                      transparency={transparency}
+                      showGrid={showGrid}
+                      gridOpacity={gridOpacity}
+                      rotation={viewRotation}
+                      panOffset={panOffset}
+                      canvasSize={workspaceSize}
+                      isAnimatingRotation={isAnimatingRotation}
+                      isRotating={isCanvasInteracting && interactionMode === 'rotate'}
+                      animationDuration={animDuration}
+                      gridUnitValue={gridUnitValue}
+                      gridUnitType={gridUnitType}
+                    />
+                  </div>
+                </div>
+              ) : (mode === 'prism_tri' || mode === 'pyramid' || mode === 'cone') ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-300">
                   <span className="text-4xl mb-4">⚒️</span>
                   <p className="text-2xl font-black mb-2 text-slate-600">준비 중인 입체형상입니다</p>
-                  <p className="text-sm font-medium text-slate-400">삼각기둥, 각뿔(삼각/사각/오각), 원기둥 전개도 기능은 조만간 업데이트됩니다!</p>
+                  <p className="text-sm font-medium text-slate-400">삼각기둥, 각뿔, 원뿔 전개도 기능은 조만간 업데이트됩니다!</p>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-300">

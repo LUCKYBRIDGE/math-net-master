@@ -12,6 +12,7 @@ interface CircleCanvasProps {
     showGrid?: boolean;
     gridOpacity?: number;
     displayMode?: 'split' | 'roll' | 'onion' | 'none';
+    usePiSymbol?: boolean;
 }
 
 export const CircleCanvas: React.FC<CircleCanvasProps> = ({
@@ -25,9 +26,13 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
     transparentBackground = false,
     showGrid = true,
     gridOpacity = 0.5,
-    displayMode = 'split'
+    displayMode = 'split',
+    usePiSymbol = false
 }) => {
     const N = Math.max(4, segments);
+    const piLabel = usePiSymbol ? 'π' : '3.14';
+    const piVal = usePiSymbol ? 'π' : (Math.PI).toFixed(2);
+    const strokeW = Math.max(0.3, Math.min(1.5, 30 / N));
     const p = foldProgress / 100;
     const rScaled = radius * scale;
     const opacity = 1 - transparency;
@@ -162,9 +167,9 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                             <path
                                 key={i}
                                 d={d}
-                                fill={piece.isEven ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.2)'}
+                                fill={piece.isEven ? 'rgba(59, 130, 246, 0.12)' : 'rgba(251, 146, 60, 0.18)'}
                                 stroke={lineColor}
-                                strokeWidth="1.5"
+                                strokeWidth={strokeW}
                                 strokeLinejoin="round"
                                 opacity={opacity}
                                 transform={transform}
@@ -184,7 +189,7 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                             x={actualLeftEdge + rectTotalWidth / 2} y={centerY + rScaled / 2 + 50}
                             fill="#ef4444" fontSize="14" fontWeight="bold" textAnchor="middle"
                         >
-                            원주의 ½ (반원) = {radius} × π
+                            원주의 ½ (반원) = {radius} × {piLabel} = {usePiSymbol ? `${radius}π` : (radius * Math.PI).toFixed(2)}
                         </text>
 
                         <line
@@ -203,7 +208,7 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                             x={actualLeftEdge + rectTotalWidth / 2} y={centerY - rScaled / 2 - 20}
                             fill="#334155" fontSize="16" fontWeight="900" textAnchor="middle"
                         >
-                            원의 넓이 = ({radius} × π) × {radius} = {radius * radius}π
+                            원의 넓이 = ({radius} × {piLabel}) × {radius} = {usePiSymbol ? `${radius * radius}π` : (radius * radius * Math.PI).toFixed(2)}
                         </text>
                     </g>
                 </svg>

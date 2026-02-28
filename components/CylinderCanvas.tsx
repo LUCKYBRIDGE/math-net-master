@@ -25,6 +25,7 @@ interface CylinderCanvasProps {
     outsideColor?: string;
     actionMode?: 'none' | 'surface' | 'volume' | 'section' | 'rectify';
     sectionType?: 'horizontal' | 'vertical' | 'diagonal';
+    usePiSymbol?: boolean;
 }
 
 export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
@@ -51,8 +52,11 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
     insideColor = '#e2e8f0', // 안쪽면 색상 (약간 푸른빛 섞인 어두운 회색)
     outsideColor = '#ffffff', // 겉면 색상
     actionMode = 'none',
-    sectionType = 'horizontal'
+    sectionType = 'horizontal',
+    usePiSymbol = false
 }) => {
+    const piLabel = usePiSymbol ? 'π' : '3.14';
+    const fmtPi = (coeff: number) => usePiSymbol ? `${coeff}π` : (coeff * Math.PI).toFixed(2);
     const actualFoldProgress = (actionMode === 'volume' || actionMode === 'section' || actionMode === 'rectify') ? 100 : foldProgress;
     const isFlat = actualFoldProgress === 0;
     const faceOpacity = 1 - transparency;
@@ -95,7 +99,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                 <div className="absolute top-8 text-center w-full z-10 pointer-events-none">
                     <div className="inline-block bg-white/90 backdrop-blur-md px-6 py-4 rounded-3xl shadow-lg border border-slate-200">
                         <div className="text-lg font-black text-slate-800">
-                            원기둥 겉넓이 = 2 × 밑넓이({radius * radius}π) + 옆넓이({radius * 2 * height}π) = <span className="text-blue-600">{(2 * radius * radius + radius * 2 * height).toFixed(2)}π</span>
+                            원기둥 겉넓이 = 2 × 밑넓이({fmtPi(radius * radius)}) + 옆넓이({fmtPi(radius * 2 * height)}) = <span className="text-blue-600">{fmtPi(2 * radius * radius + radius * 2 * height)}</span>
                         </div>
                     </div>
                 </div>
@@ -104,7 +108,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                 <div className="absolute top-8 text-center w-full z-10 pointer-events-none">
                     <div className="inline-block bg-white/90 backdrop-blur-md px-6 py-4 rounded-3xl shadow-lg border border-slate-200">
                         <div className="text-lg font-black text-slate-800">
-                            부피 = 밑넓이({radius * radius}π) × 물의 높이({(height * (foldProgress / 100)).toFixed(1)}) = <span className="text-blue-600">{(radius * radius * height * (foldProgress / 100)).toFixed(2)}π</span>
+                            부피 = 밑넓이({fmtPi(radius * radius)}) × 물높이({(height * (foldProgress / 100)).toFixed(1)}) = <span className="text-blue-600">{usePiSymbol ? `${(radius * radius * height * (foldProgress / 100)).toFixed(2)}π` : (radius * radius * Math.PI * height * (foldProgress / 100)).toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -122,7 +126,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                 <div className="absolute top-8 text-center w-full z-10 pointer-events-none">
                     <div className="inline-block bg-white/90 backdrop-blur-md px-6 py-4 rounded-3xl shadow-lg border border-orange-200">
                         <div className="text-lg font-black text-slate-800">
-                            {segments}조각으로 분할 &rarr; 직사각형 (가로 = <span className="text-orange-600">원주의 ½ ({radius}&pi;)</span> , 세로 = <span className="text-green-600">반지름({radius})</span>)
+                            {segments}조각으로 분할 &rarr; 직사각형 (가로 = <span className="text-orange-600">원주의 ½ ({fmtPi(radius)})</span>, 세로 = <span className="text-green-600">반지름({radius})</span>)
                         </div>
                     </div>
                 </div>
@@ -270,7 +274,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                 transform: 'translateZ(1px)' // z-fighting 방지
                             }}>
                                 <span className="text-xl font-black text-slate-700 bg-white/80 px-4 py-2 rounded-xl backdrop-blur-sm">
-                                    옆넓이 = 가로({radius * 2}π) × 높이({height}) = {radius * 2 * height}π
+                                    옆넓이 = 가로({fmtPi(radius * 2)}) × 높이({height}) = {fmtPi(radius * 2 * height)}
                                 </span>
                             </div>
                         )}
@@ -329,7 +333,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     }} />
                                     {actionMode === 'surface' && progress === 0 && (
                                         <div className="absolute inset-0 flex items-center justify-center font-black text-slate-700 text-lg bg-white/50 rounded-full" style={{ transform: 'rotateX(180deg) translateZ(1px)' }}>
-                                            밑넓이 = {radius * radius}π
+                                            밑넓이 = {fmtPi(radius * radius)}
                                         </div>
                                     )}
                                 </div>
@@ -389,7 +393,7 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                     }} />
                                     {actionMode === 'surface' && progress === 0 && (
                                         <div className="absolute inset-0 flex items-center justify-center font-black text-slate-700 text-lg bg-white/50 rounded-full" style={{ transform: 'rotateX(180deg) translateZ(1px)' }}>
-                                            밑넓이 = {radius * radius}π
+                                            밑넓이 = {fmtPi(radius * radius)}
                                         </div>
                                     )}
                                 </div>

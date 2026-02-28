@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [circleRadius, setCircleRadius] = useState(3);
   const [circleSegments, setCircleSegments] = useState(16);
   const [circleDisplayMode, setCircleDisplayMode] = useState<'split' | 'roll' | 'onion' | 'none'>('none');
+  const [usePiSymbol, setUsePiSymbol] = useState(false);
   const [cubeSize] = useState(3);
   const [cuboidDims, setCuboidDims] = useState<Dimensions>({ l: 2, w: 3, h: 4 });
   const [selectedNet, setSelectedNet] = useState<NetData | null>(null);
@@ -1114,6 +1115,16 @@ const App: React.FC = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* π 표기 방식 토글 */}
+                    <div className="pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => setUsePiSymbol(!usePiSymbol)}
+                        className={`w-full py-1.5 rounded-lg text-[10px] font-black transition-all ${usePiSymbol ? 'bg-violet-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                      >
+                        {usePiSymbol ? 'π로 표현 중 ✓' : '3.14 대신 π로 표현하기'}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1172,6 +1183,16 @@ const App: React.FC = () => {
                           </div>
                         </div>
                       )}
+                    </div>
+
+                    {/* π 표기 방식 토글 */}
+                    <div className="pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => setUsePiSymbol(!usePiSymbol)}
+                        className={`w-full py-1.5 rounded-lg text-[10px] font-black transition-all ${usePiSymbol ? 'bg-violet-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                      >
+                        {usePiSymbol ? 'π로 표현 중 ✓' : '3.14 대신 π로 표현하기'}
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1364,6 +1385,7 @@ const App: React.FC = () => {
                       highlightPerimeter={highlightPerimeter}
                       actionMode={cylinderActionMode}
                       sectionType={cylinderSectionType}
+                      usePiSymbol={usePiSymbol}
                     />
                   </div>
                 </div>
@@ -1380,6 +1402,7 @@ const App: React.FC = () => {
                       gridOpacity={gridOpacity}
                       canvasSize={workspaceSize}
                       displayMode={circleDisplayMode}
+                      usePiSymbol={usePiSymbol}
                     />
                   </div>
                 </div>

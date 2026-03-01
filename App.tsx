@@ -729,10 +729,12 @@ const App: React.FC = () => {
     return Math.max(4, Math.floor(raw * 0.9));
   };
 
+  const foldLabel = (mode === 'prism' || mode === 'pyramid') ? '💧 부피 물채우기' : '접기 제어';
+
   const foldSliderOnly = (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase text-slate-500">접기 제어</span>
+        <span className="text-[10px] font-bold uppercase text-slate-500">{foldLabel}</span>
         <span className="text-[9px] font-black text-slate-400">{foldProgress}%</span>
       </div>
       <input
@@ -748,7 +750,7 @@ const App: React.FC = () => {
 
   const foldControls = (
     <div className="space-y-3">
-      <span className="text-[10px] font-bold block uppercase text-slate-500">접기 제어</span>
+      <span className="text-[10px] font-bold block uppercase text-slate-500">{foldLabel}</span>
       <div className="flex gap-2">
         <button onClick={() => stepFold(-25)} className="flex-1 py-2 rounded-xl bg-slate-100 font-black text-xs">-25%</button>
         <button onClick={() => stepFold(25)} className="flex-1 py-2 rounded-xl bg-blue-600 text-white font-black text-xs">+25%</button>
@@ -1658,6 +1660,10 @@ const App: React.FC = () => {
                         return frontBase[i].y < cy - R * 0.2 && frontBase[i].x < cx + R * 0.2;
                       };
 
+                      // 물 채우기 연산
+                      const waterProg = foldProgress / 100;
+                      const waterTop = frontBase.map(p => ({ x: p.x + depthX * waterProg, y: p.y - depthY * waterProg }));
+
                       return (
                         <svg width={cW} height={cH} className="absolute inset-0">
                           {/* 옆면 채우기 */}
@@ -1672,6 +1678,28 @@ const App: React.FC = () => {
                           {/* 윗면 */}
                           <polygon points={backTop.map(p => `${p.x},${p.y}`).join(' ')}
                             fill="rgba(59,130,246,0.2)" stroke="#334155" strokeWidth="2.5" />
+
+                          {/* 물 채우기 채색 */}
+                          {waterProg > 0 && (
+                            <g>
+                              {frontBase.map((bp, i) => {
+                                const ni = (i + 1) % n;
+                                const pts = `${bp.x},${bp.y} ${frontBase[ni].x},${frontBase[ni].y} ${waterTop[ni].x},${waterTop[ni].y} ${waterTop[i].x},${waterTop[i].y}`;
+                                return <polygon key={`water-side-${i}`} points={pts} fill="rgba(59, 130, 246, 0.4)" stroke="none" />;
+                              })}
+                              <polygon points={waterTop.map(p => `${p.x},${p.y}`).join(' ')} fill="rgba(59, 130, 246, 0.6)" stroke="rgba(59, 130, 246, 0.4)" strokeWidth="1" />
+                            </g>
+                          )}
+
+                          {/* 물 부피 공식 오버레이 (Prism) */}
+                          {waterProg > 0 && (
+                            <foreignObject x={cx - 150} y={Math.max(20, cy - 140 - 50 * waterProg)} width="300" height="80" className="pointer-events-none overflow-visible">
+                              <div className="flex flex-col items-center justify-center bg-white/95 px-4 py-3 rounded-2xl shadow-xl backdrop-blur-md border border-blue-200">
+                                <span className="text-[11px] font-bold text-slate-500 mb-1">각기둥의 부피 = 밑넓이 × 높이</span>
+                                <span className="text-xl font-black text-blue-600">물려 채워진 높이: {Math.round(waterProg * 100)}%</span>
+                              </div>
+                            </foreignObject>
+                          )}
 
                           {/* 밑면 모서리 (빨간 굵기) */}
                           {frontBase.map((bp, i) => {
@@ -1782,6 +1810,13 @@ const App: React.FC = () => {
                         return midY < cy + R * 0.2 && n > 3; // 중심보다 위에 있는 밑선
                       };
 
+                      // 물 채우기 연산
+                      const waterProg = foldProgress / 100;
+                      const waterTop = basePoints.map(p => ({
+                        x: p.x + (apex.x - p.x) * waterProg,
+                        y: p.y + (apex.y - p.y) * waterProg
+                      }));
+
                       return (
                         <svg width={cW} height={cH} className="absolute inset-0">
                           {/* 옆면 삼각형 채우기 */}
@@ -1793,6 +1828,28 @@ const App: React.FC = () => {
                           {/* 밑면 */}
                           <polygon points={basePoints.map(p => `${p.x},${p.y}`).join(' ')}
                             fill="rgba(147,51,234,0.1)" stroke="#334155" strokeWidth="2" />
+
+                          {/* 물 채우기 채색 */}
+                          {waterProg > 0 && (
+                            <g>
+                              {basePoints.map((bp, i) => {
+                                const ni = (i + 1) % n;
+                                const pts = `${bp.x},${bp.y} ${basePoints[ni].x},${basePoints[ni].y} ${waterTop[ni].x},${waterTop[ni].y} ${waterTop[i].x},${waterTop[i].y}`;
+                                return <polygon key={`water-py-side-${i}`} points={pts} fill="rgba(147, 51, 234, 0.4)" stroke="none" />;
+                              })}
+                              <polygon points={waterTop.map(p => `${p.x},${p.y}`).join(' ')} fill="rgba(147, 51, 234, 0.6)" stroke="inherit" strokeWidth="1" />
+                            </g>
+                          )}
+
+                          {/* 물 부피 공식 오버레이 (Pyramid) */}
+                          {waterProg > 0 && (
+                            <foreignObject x={cx - 150} y={Math.max(20, cy - 110 - 50 * waterProg)} width="300" height="80" className="pointer-events-none overflow-visible">
+                              <div className="flex flex-col items-center justify-center bg-white/95 px-4 py-3 rounded-2xl shadow-xl backdrop-blur-md border border-purple-200">
+                                <span className="text-[11px] font-bold text-slate-500 mb-1">각뿔의 부피 = 밑넓이 × 높이 × ⅓</span>
+                                <span className="text-[15px] font-black text-purple-600">위로 갈수록 좁아지는 모양! 💧</span>
+                              </div>
+                            </foreignObject>
+                          )}
 
                           {/* 밑면 모서리 (빨간) */}
                           {basePoints.map((bp, i) => {

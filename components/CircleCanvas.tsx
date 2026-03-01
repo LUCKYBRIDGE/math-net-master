@@ -138,9 +138,27 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                     />
                     <text
                         x={centerX + rScaled / 2} y={centerY - 8}
-                        fill="#ef4444" fontSize="13" fontWeight="bold" textAnchor="middle"
+                        fill="#ef4444" fontSize="14" fontWeight="900" textAnchor="middle"
                     >
                         {rLabel} = {radius}
+                    </text>
+                    {/* 원주 표시 (테두리 두껍게) */}
+                    <circle
+                        cx={centerX}
+                        cy={centerY}
+                        r={rScaled}
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth="3"
+                        strokeDasharray="6 6"
+                        className="animate-[spin_20s_linear_infinite]"
+                        style={{ transformOrigin: `${centerX}px ${centerY}px` }}
+                    />
+                    <text
+                        x={centerX} y={centerY - rScaled - 15}
+                        fill="#3b82f6" fontSize="14" fontWeight="900" textAnchor="middle"
+                    >
+                        원주(원의 둘레) = 지름({radius * 2}) × {piLabel} = {usePiSymbol ? `${radius * 2}π` : (radius * Math.PI * 2).toFixed(2)}
                     </text>
                     {/* 중심점 */}
                     <circle cx={centerX} cy={centerY} r="4" fill="#334155" />
@@ -170,8 +188,8 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                             <path
                                 key={i}
                                 d={d}
-                                fill={piece.isEven ? 'rgba(59, 130, 246, 0.12)' : 'rgba(251, 146, 60, 0.18)'}
-                                stroke={lineColor}
+                                fill={piece.isEven ? 'rgba(59, 130, 246, 0.25)' : 'rgba(239, 68, 68, 0.25)'}
+                                stroke={piece.isEven ? '#2563eb' : '#dc2626'}
                                 strokeWidth={strokeW}
                                 strokeLinejoin="round"
                                 opacity={opacity}
@@ -247,8 +265,11 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                         {/* Text Annotations */}
                         <g style={{ opacity: Math.max(0, (p - 0.8) * 5), transition: 'opacity 0.2s' }}>
                             <path d={`M ${startX} ${groundY + 20} L ${startX} ${groundY + 30} L ${startX + 2 * Math.PI * rScaled} ${groundY + 30} L ${startX + 2 * Math.PI * rScaled} ${groundY + 20}`} fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="4 4" />
-                            <text x={startX + Math.PI * rScaled} y={groundY + 50} fill="#ef4444" fontSize="16" fontWeight="bold" textAnchor="middle">
-                                굴러간 거리 (원주) = 지름({radius * 2}) × π
+                            <text x={startX + Math.PI * rScaled} y={groundY + 55} fill="#ef4444" fontSize="18" fontWeight="900" textAnchor="middle">
+                                굴러간 거리 = 원의 둘레(원주) = 지름({radius * 2}) × {piLabel} = {usePiSymbol ? `${radius * 2}π` : (radius * 2 * Math.PI).toFixed(2)}
+                            </text>
+                            <text x={startX + Math.PI * rScaled} y={groundY + 75} fill="#64748b" fontSize="12" fontWeight="bold" textAnchor="middle">
+                                ✨ 바퀴가 정확히 한 바퀴 굴러가면, 그 거리는 원의 둘레와 같습니다!
                             </text>
                         </g>
                     </svg>

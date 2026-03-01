@@ -358,9 +358,17 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
                                 transform: 'translateZ(1px)'
                             }}>
-                                <span className="text-xl font-black text-slate-700 bg-white/80 px-4 py-2 rounded-xl backdrop-blur-sm">
-                                    옆넓이 = 가로({fmtPi(radius * 2)}) × {hLabel}({height}) = {fmtPi(radius * 2 * height)}
-                                </span>
+                                <div className="flex flex-col items-center bg-white/90 px-5 py-3 rounded-2xl shadow-xl backdrop-blur-md border border-slate-200">
+                                    <span className="text-xl font-black text-blue-600 mb-1">
+                                        옆넓이 = 가로 × 세로
+                                    </span>
+                                    <span className="text-sm font-bold text-slate-600">
+                                        = 원주({fmtPi(radius * 2)}) × {hLabel}({height})
+                                    </span>
+                                    <span className="text-2xl font-black text-rose-500 mt-1">
+                                        = {fmtPi(radius * 2 * height)}
+                                    </span>
+                                </div>
                             </div>
                         )}
 
@@ -399,6 +407,26 @@ export const CylinderCanvas: React.FC<CylinderCanvasProps> = ({
                                         backgroundColor: waterColor, borderRadius: '50%',
                                         transform: `rotateX(-90deg)`,
                                     }} />
+
+                                    {/* 부피공식 오버레이 (바깥쪽) */}
+                                    {waterProg > 0.1 && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            left: 0, top: 0,
+                                            transform: `translate3d(0, ${-hS / 2 - 60}px, 0) rotateX(${-rotation.x}deg) rotateY(${-rotation.y}deg)`,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+                                        }}>
+                                            <div className="flex flex-col items-center bg-white/95 px-5 py-3 rounded-2xl shadow-xl backdrop-blur-md border border-blue-200 min-w-[200px]">
+                                                <span className="text-sm font-bold text-slate-500 mb-1">밑넓이 × 채워진 물의 높이</span>
+                                                <span className="text-lg font-black text-blue-600">
+                                                    {fmtPi(radius * radius)} × {(height * waterProg).toFixed(1)}
+                                                </span>
+                                                <span className="text-xl font-black text-indigo-600 mt-1">
+                                                    = 부피 {fmtPi(radius * radius * height * waterProg)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })()}

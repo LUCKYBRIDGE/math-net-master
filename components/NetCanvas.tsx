@@ -172,16 +172,13 @@ const PerspectiveWireframe: React.FC<{
             // 테두리는 굵게, 접는 선은 중간 굵기로 표현
             weight = fold ? (1.5 * sw) : (3.5 * sw);
             color = fold ? linePalette.fold : linePalette.solid;
-          } else if (isFullyFolded) {
-            // 접기 모션이 완전히 끝난 후에는 투시 상황과 관계없이 외곽선을 모두 실선으로 그려서
-            // 점선이 겹쳐 보이는 현상을 방지
-            borderStyle = 'solid';
-            weight = isInward ? (1.5 * sw) : (1.2 * sw);
-            color = linePalette.solid;
           } else {
-            borderStyle = isInward ? 'solid' : 'dashed';
-            weight = isInward ? (1.2 * sw) : (1.0 * sw);
-            color = isInward ? linePalette.solid : linePalette.muted;
+            // 접힌 상태 (겨냥도)
+            // 안쪽 면(inward)은 카메라에서 화면 반대로 향한 뒤쪽 면의 뒷면이므로 점선(숨은 선)으로 렌더링
+            // 바깥쪽 면(outward)은 카메라를 향한 앞면이므로 실선으로 렌더링
+            borderStyle = isInward ? 'dashed' : 'solid';
+            weight = isInward ? (1.2 * sw) : (2.0 * sw);
+            color = isInward ? linePalette.muted : linePalette.solid;
           }
 
           if (isMatched) {
@@ -347,17 +344,19 @@ const FoldableFace: React.FC<{
 
         {showArea && (
           <div style={{
-            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
             transform: `translateZ(2px)`,
-            fontSize: `${Math.max(12, Math.min(face.width, face.height) * scale * 0.2)}px`,
+            fontSize: `${Math.min(face.width * scale / 7, face.height * scale / 3, 20)}px`,
             fontWeight: 900,
             color: '#0f172a',
-            whiteSpace: 'nowrap',
+            textAlign: 'center',
+            lineHeight: 1.2,
             textShadow: '0px 0px 4px rgba(255,255,255,0.8), 0px 0px 2px rgba(255,255,255,1)',
             backfaceVisibility: 'visible',
             zIndex: 20
           }}>
-            {face.width * gridUnitValue}{gridUnitType} × {face.height * gridUnitValue}{gridUnitType} = {face.width * face.height * gridUnitValue * gridUnitValue}{gridUnitType}²
+            <div>{face.width * gridUnitValue}{gridUnitType} × {face.height * gridUnitValue}{gridUnitType}</div>
+            <div>= {face.width * face.height * gridUnitValue * gridUnitValue}{gridUnitType}²</div>
           </div>
         )}
 

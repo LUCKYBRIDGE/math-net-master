@@ -729,7 +729,10 @@ const App: React.FC = () => {
     return Math.max(4, Math.floor(raw * 0.9));
   };
 
-  const foldLabel = (mode === 'prism' || mode === 'pyramid') ? '💧 부피 물채우기' : '접기 제어';
+  const foldLabel = (mode === 'prism' || mode === 'pyramid') ? '💧 부피 물채우기'
+    : (mode === 'circle' && circleDisplayMode === 'split') ? '🧩 조각 모아 직사각형 만들기'
+      : (mode === 'circle' && circleDisplayMode === 'roll') ? '🔄 한 바퀴 굴리기'
+        : '접기 제어';
 
   const foldSliderOnly = (
     <div className="space-y-2">
@@ -1290,12 +1293,6 @@ const App: React.FC = () => {
                           피자처럼 넓이 쪼개기 증명
                         </button>
                         <button
-                          onClick={() => setCircleDisplayMode(circleDisplayMode === 'onion' ? 'none' : 'onion')}
-                          className={`w-full py-2 rounded-lg text-[10px] font-black transition-all ${circleDisplayMode === 'onion' ? 'bg-amber-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                        >
-                          양파 껍질로 자르기 증명
-                        </button>
-                        <button
                           onClick={() => setCircleDisplayMode(circleDisplayMode === 'roll' ? 'none' : 'roll')}
                           className={`w-full py-2 rounded-lg text-[10px] font-black transition-all ${circleDisplayMode === 'roll' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                         >
@@ -1313,7 +1310,7 @@ const App: React.FC = () => {
                             <input
                               type="range"
                               min="4"
-                              max="80"
+                              max="160"
                               step="4"
                               value={circleSegments}
                               onChange={e => setCircleSegments(Number(e.target.value))}
@@ -1410,57 +1407,61 @@ const App: React.FC = () => {
                 )}
 
                 {/* 도형 분석 (모서리, 넓이) */}
-                <div className="space-y-3 pt-2 border-t border-slate-50">
-                  <span className="text-[10px] font-bold block uppercase text-slate-500">도형 분석</span>
+                {(mode !== 'circle' && mode !== 'cylinder') && (
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">도형 분석</span>
 
-                  {/* 모눈종이 기본 단위 설정 */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap min-w-[3.5rem]">1눈금 단위</span>
-                    <div className="flex items-center p-1 bg-slate-100 rounded-xl flex-1">
-                      <button onClick={() => setGridUnitValue(prev => Math.max(1, prev - 1))} className="w-6 h-6 font-bold text-slate-600 flex items-center justify-center">-</button>
-                      <input
-                        type="number"
-                        min={1}
-                        max={100}
-                        value={gridUnitValue}
-                        onChange={e => setGridUnitValue(Math.max(1, Number(e.target.value)))}
-                        className="flex-1 text-center text-[11px] font-black bg-transparent outline-none w-full"
-                      />
-                      <button onClick={() => setGridUnitValue(prev => prev + 1)} className="w-6 h-6 font-bold text-slate-600 flex items-center justify-center">+</button>
+                    {/* 모눈종이 기본 단위 설정 */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap min-w-[3.5rem]">1눈금 단위</span>
+                      <div className="flex items-center p-1 bg-slate-100 rounded-xl flex-1">
+                        <button onClick={() => setGridUnitValue(prev => Math.max(1, prev - 1))} className="w-6 h-6 font-bold text-slate-600 flex items-center justify-center">-</button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={gridUnitValue}
+                          onChange={e => setGridUnitValue(Math.max(1, Number(e.target.value)))}
+                          className="flex-1 text-center text-[11px] font-black bg-transparent outline-none w-full"
+                        />
+                        <button onClick={() => setGridUnitValue(prev => prev + 1)} className="w-6 h-6 font-bold text-slate-600 flex items-center justify-center">+</button>
+                      </div>
+                      <select
+                        value={gridUnitType}
+                        onChange={e => setGridUnitType(e.target.value)}
+                        className="px-2 py-1.5 bg-slate-100 rounded-xl text-[11px] font-black text-slate-700 outline-none cursor-pointer border-r-[4px] border-r-transparent"
+                      >
+                        <option value="mm">mm</option>
+                        <option value="cm">cm</option>
+                        <option value="m">m</option>
+                      </select>
                     </div>
-                    <select
-                      value={gridUnitType}
-                      onChange={e => setGridUnitType(e.target.value)}
-                      className="px-2 py-1.5 bg-slate-100 rounded-xl text-[11px] font-black text-slate-700 outline-none cursor-pointer border-r-[4px] border-r-transparent"
-                    >
-                      <option value="mm">mm</option>
-                      <option value="cm">cm</option>
-                      <option value="m">m</option>
-                    </select>
-                  </div>
 
-                  <div className="flex gap-2">
-                    <button onClick={() => setShowEdgeMatches(!showEdgeMatches)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showEdgeMatches ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-100 hover:border-green-200'}`}>
-                      모서리 매칭
-                    </button>
-                    <button onClick={() => setShowArea(!showArea)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showArea ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-100 hover:border-blue-200'}`}>
-                      겉넓이 보기
-                    </button>
-                    <button onClick={() => setShowBasePerimeter(!showBasePerimeter)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showBasePerimeter ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-100 hover:border-amber-200'}`}>
-                      밑면 둘레 증명
-                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowEdgeMatches(!showEdgeMatches)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showEdgeMatches ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-100 hover:border-green-200'}`}>
+                        모서리 매칭
+                      </button>
+                      <button onClick={() => setShowArea(!showArea)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showArea ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-100 hover:border-blue-200'}`}>
+                        겉넓이 보기
+                      </button>
+                      <button onClick={() => setShowBasePerimeter(!showBasePerimeter)} className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all border-2 ${showBasePerimeter ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-100 hover:border-amber-200'}`}>
+                        밑면 둘레 증명
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* 색칠 도구 */}
-                <div className="space-y-3 pt-2 border-t border-slate-50">
-                  <span className="text-[10px] font-bold block uppercase text-slate-500">색칠하기</span>
-                  <div className="flex flex-wrap gap-2">
-                    {PAINT_PALETTE.map(color => (
-                      <button key={color} onClick={() => setSelectedPaintColor(selectedPaintColor === color ? null : color)} className={`w-8 h-8 rounded-full border-2 ${selectedPaintColor === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`} style={{ backgroundColor: color }} />
-                    ))}
+                {(mode !== 'circle' && mode !== 'cylinder') && (
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">색칠하기</span>
+                    <div className="flex flex-wrap gap-2">
+                      {PAINT_PALETTE.map(color => (
+                        <button key={color} onClick={() => setSelectedPaintColor(selectedPaintColor === color ? null : color)} className={`w-8 h-8 rounded-full border-2 ${selectedPaintColor === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`} style={{ backgroundColor: color }} />
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* 관찰 시점 */}
                 <div className="space-y-3 pt-2 border-t border-slate-50">

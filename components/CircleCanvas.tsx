@@ -236,33 +236,52 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
             )}
 
             {displayMode === 'roll' && (() => {
+                const getArcPath = (cx: number, cy: number, r: number, startAngleDeg: number, endAngleDeg: number) => {
+                    const startRad = (startAngleDeg - 90) * Math.PI / 180;
+                    const endRad = (endAngleDeg - 90) * Math.PI / 180;
+                    const x1 = cx + r * Math.cos(startRad);
+                    const y1 = cy + r * Math.sin(startRad);
+                    const x2 = cx + r * Math.cos(endRad);
+                    const y2 = cy + r * Math.sin(endRad);
+                    const largeArc = (endAngleDeg - startAngleDeg) > 180 ? 1 : 0;
+                    if (endAngleDeg - startAngleDeg >= 359.9) {
+                        return `M ${cx},${cy - r} A ${r},${r} 0 1,1 ${cx},${cy + r} A ${r},${r} 0 1,1 ${cx},${cy - r}`;
+                    }
+                    if (endAngleDeg - startAngleDeg <= 0.1) return '';
+                    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+                };
+
                 const startX = centerX - Math.PI * rScaled;
-                const groundY = centerY + rScaled + 20;
+                const groundY = centerY + rScaled + 40;
 
                 // 100% progress = 1 full rotation = 2 * PI * r
                 const rollDist = p * 2 * Math.PI * rScaled;
                 const currentX = startX + rollDist;
                 const rotAngle = p * 360;
 
+                // 아직 바닥에 닿지 않은 남은 원주(빨간 선)
+                const remainArc = getArcPath(currentX, groundY - rScaled - 2, rScaled, 180 + rotAngle, 540);
+
                 return (
                     <svg width="100%" height="100%" className="absolute inset-0">
                         {/* Ground line */}
                         <line x1={startX - 50} y1={groundY} x2={startX + 2 * Math.PI * rScaled + 50} y2={groundY} stroke="#cbd5e1" strokeWidth="2" />
 
-                        {/* Unrolled path */}
-                        <line x1={startX} y1={groundY - 2} x2={currentX} y2={groundY - 2} stroke="#ef4444" strokeWidth="4" />
+                        {/* Unrolled 바닥 빨간 선 (도장 찍힌 자국) */}
+                        <line x1={startX} y1={groundY - 2} x2={currentX} y2={groundY - 2} stroke="#ef4444" strokeWidth="5" />
 
-                        {/* The Rolling Circle */}
+                        {/* 구르는 원 (검은 선 및 바탕) */}
                         <g transform={`translate(${currentX}, ${groundY - rScaled - 2}) rotate(${rotAngle})`}>
                             <circle cx="0" cy="0" r={rScaled} fill="rgba(59, 130, 246, 0.1)" stroke={lineColor} strokeWidth="2" />
-                            {/* Inner slices for visual rotation */}
-                            <line x1="0" y1="-rScaled" x2="0" y2={rScaled} stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1" />
-                            <line x1="-rScaled" y1="0" x2={rScaled} y2="0" stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1" />
-                            {/* The tracing point (red dot) at bottom initially */}
-                            <circle cx="0" cy={rScaled} r="4" fill="#ef4444" />
+                            {/* 중심점과 초기 도장점 (빨간점) */}
+                            <circle cx="0" cy={rScaled} r="5" fill="#ef4444" />
+                            <circle cx="0" cy="0" r="3" fill="#334155" />
                         </g>
 
-                        {/* Text Annotations */}
+                        {/* 아직 땅에 닿지 않고 원호에 남은 빨간 물감 궤적 */}
+                        {remainArc && <path d={remainArc} fill="none" stroke="#ef4444" strokeWidth="5" />}
+
+                        {/* 안내선과 텍스트 (다 그려지고 나서 설명표시) */}
                         <g style={{ opacity: Math.max(0, (p - 0.8) * 5), transition: 'opacity 0.2s' }}>
                             <path d={`M ${startX} ${groundY + 20} L ${startX} ${groundY + 30} L ${startX + 2 * Math.PI * rScaled} ${groundY + 30} L ${startX + 2 * Math.PI * rScaled} ${groundY + 20}`} fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="4 4" />
                             <text x={startX + Math.PI * rScaled} y={groundY + 55} fill="#ef4444" fontSize="18" fontWeight="900" textAnchor="middle">
@@ -276,86 +295,7 @@ export const CircleCanvas: React.FC<CircleCanvasProps> = ({
                 );
             })()}
 
-            {displayMode === 'onion' && (() => {
-                // Number of onion bands
-                const M = Math.max(5, Math.ceil(segments / 2));
-                const samples = 64;
 
-                return (
-                    <svg width="100%" height="100%" className="absolute inset-0" style={{ overflow: 'visible' }}>
-                        {Array.from({ length: M }).map((_, j) => {
-                            const R = ((j + 1) / M) * rScaled;
-                            const prevR = (j / M) * rScaled;
-                            const midR = (R + prevR) / 2;
-                            const bandWidth = R - prevR;
-
-                            // To make a triangle pointing right
-                            // Unrolled lines stack horizontally or vertically. Let's stack vertically like a triangle Base=2piR, Height=R
-                            // Center of triangle at bottom
-                            const triBottom = centerY + rScaled + 50;
-                            const lineY = triBottom - midR;
-
-                            const points = [];
-                            for (let k = 0; k <= samples; k++) {
-                                const frac = k / samples;
-                                // circle mode (p=0): open from bottom so it falls flat
-                                const angle = 2 * Math.PI * frac; // 0 is top, pi is bottom
-
-                                const cx0 = centerX + midR * Math.sin(angle);
-                                const cy0 = centerY - midR * Math.cos(angle);
-
-                                // line mode (p=1)
-                                const lineLength = 2 * Math.PI * midR;
-                                const cx1 = centerX + lineLength * (frac - 0.5);
-                                const cy1 = lineY;
-
-                                const px = cx0 * (1 - p) + cx1 * p;
-                                const py = cy0 * (1 - p) + cy1 * p;
-                                points.push(`${px},${py}`);
-                            }
-
-                            return (
-                                <polyline
-                                    key={j}
-                                    points={points.join(' ')}
-                                    fill="none"
-                                    stroke={j % 2 === 0 ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.6)'}
-                                    strokeWidth={bandWidth}
-                                    strokeLinecap="round"
-                                />
-                            );
-                        })}
-
-                        {/* Annotations */}
-                        <g style={{ opacity: Math.max(0, (p - 0.8) * 5), transition: 'opacity 0.2s' }}>
-                            {/* Base: 2 pi r */}
-                            <line
-                                x1={centerX - Math.PI * rScaled} y1={centerY + rScaled + 60}
-                                x2={centerX + Math.PI * rScaled} y2={centerY + rScaled + 60}
-                                stroke="#ef4444" strokeWidth="2" strokeDasharray="4 4"
-                            />
-                            <text x={centerX} y={centerY + rScaled + 80} fill="#ef4444" fontSize="14" fontWeight="bold" textAnchor="middle">
-                                밑변 = 원주 ({radius * 2}π)
-                            </text>
-
-                            {/* Height: r */}
-                            <line
-                                x1={centerX + Math.PI * rScaled + 20} y1={centerY + 50}
-                                x2={centerX + Math.PI * rScaled + 20} y2={centerY + rScaled + 50}
-                                stroke="#22c55e" strokeWidth="2" strokeDasharray="4 4"
-                            />
-                            <text x={centerX + Math.PI * rScaled + 30} y={centerY + rScaled / 2 + 50} fill="#22c55e" fontSize="14" fontWeight="bold" textAnchor="start">
-                                높이 = 반지름({radius})
-                            </text>
-
-                            {/* Area */}
-                            <text x={centerX} y={centerY - 20} fill="#334155" fontSize="16" fontWeight="900" textAnchor="middle">
-                                직각삼각형 넓이 = ½ × 밑변({radius * 2}π) × 높이({radius}) = {radius * radius}π
-                            </text>
-                        </g>
-                    </svg>
-                );
-            })()}
         </div>
     );
 };

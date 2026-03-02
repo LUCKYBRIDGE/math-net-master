@@ -7,6 +7,7 @@ import { NetCanvas } from './components/NetCanvas';
 import { CylinderCanvas } from './components/CylinderCanvas';
 import { CircleCanvas } from './components/CircleCanvas';
 import { CompareCanvas } from './components/CompareCanvas';
+import { NetCanvas3D } from './components/Three/NetCanvas3D';
 
 const DEFAULT_ROTATION = { x: 0, y: 0 };
 const ISO_ROTATION = { x: -25, y: 45 };
@@ -14,7 +15,7 @@ const PAINT_PALETTE = ['#ef4444', '#3b82f6', '#22c55e', '#fde047', '#a855f7', '#
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'single' | 'compare'>('single');
-  const [mode, setMode] = useState<'cube' | 'cuboid' | 'prism' | 'pyramid' | 'cylinder' | 'cone' | 'circle'>('cube');
+  const [mode, setMode] = useState<'cube' | 'cuboid' | 'cube3d' | 'cuboid3d' | 'prism' | 'pyramid' | 'cylinder' | 'cone' | 'circle'>('cube');
   const [prismSides, setPrismSides] = useState(3); // 3~6
   const [pyramidSides, setPyramidSides] = useState(4); // 3~6
   const [prismSubtype, setPrismSubtype] = useState<'regular' | 'right' | 'iso' | 'rect'>('regular');
@@ -497,8 +498,8 @@ const App: React.FC = () => {
   }, [mode]);
 
   const currentNets = useMemo(() => {
-    if (mode === 'cube') return generateAllNets({ l: cubeSize, w: cubeSize, h: cubeSize }, true);
-    if (mode === 'cuboid') return generateAllNets(cuboidDims, false);
+    if (mode === 'cube' || mode === 'cube3d') return generateAllNets({ l: cubeSize, w: cubeSize, h: cubeSize }, true);
+    if (mode === 'cuboid' || mode === 'cuboid3d') return generateAllNets(cuboidDims, false);
     return []; // 삼각기둥 등 아직 미구현
   }, [mode, cubeSize, cuboidDims, prismTriangleType, pyramidBaseType]);
 
@@ -896,6 +897,20 @@ const App: React.FC = () => {
             >
               직육면체
             </button>
+            <div className="w-[1px] h-4 bg-slate-300 my-auto mx-1" />
+            <button
+              onClick={() => { setActiveTab('single'); setMode('cube3d'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cube3d' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-200' : 'text-indigo-400 opacity-80'}`}
+            >
+              정육면체(3D)
+            </button>
+            <button
+              onClick={() => { setActiveTab('single'); setMode('cuboid3d'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'cuboid3d' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-200' : 'text-indigo-400 opacity-80'}`}
+            >
+              직육면체(3D)
+            </button>
+            <div className="w-[1px] h-4 bg-slate-300 my-auto mx-1" />
             <button
               onClick={() => { setActiveTab('single'); setMode('prism'); }}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'prism' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
@@ -1383,7 +1398,7 @@ const App: React.FC = () => {
                 )}
 
                 {/* 주사위 설정 (정육면체만) */}
-                {mode === 'cube' && (
+                {(mode === 'cube' || mode === 'cube3d') && (
                   <div className="space-y-3 pt-2 border-t border-slate-50">
                     <span className="text-[10px] font-bold block uppercase text-slate-500">주사위 눈 (합=7)</span>
                     <div className="flex p-1 bg-slate-100 rounded-xl">
@@ -1395,7 +1410,7 @@ const App: React.FC = () => {
                 )}
 
                 {/* 평행한 면 강조 (육면체 계열만) */}
-                {(mode === 'cube' || mode === 'cuboid') && (
+                {(mode === 'cube' || mode === 'cuboid' || mode === 'cube3d' || mode === 'cuboid3d') && (
                   <div className="space-y-3 pt-2 border-t border-slate-50">
                     <span className="text-[10px] font-bold block uppercase text-slate-500">평행한 면 (같은 색칠)</span>
                     <div className="flex gap-2">
@@ -1463,16 +1478,18 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* 관찰 시점 */}
-                <div className="space-y-3 pt-2 border-t border-slate-50">
-                  <span className="text-[10px] font-bold block uppercase text-slate-500">관찰 시점</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => setQuickView('front')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">앞면</button>
-                    <button onClick={() => setQuickView('top')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">윗면</button>
-                    <button onClick={() => setQuickView('side')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">옆면</button>
-                    <button onClick={() => setQuickView('iso')} className="py-2 text-[10px] font-black rounded-xl border bg-blue-50 text-blue-600">입체</button>
+                {/* 관찰 시점 (2D 기반에서만 표시) */}
+                {(mode !== 'cube3d' && mode !== 'cuboid3d') && (
+                  <div className="space-y-3 pt-2 border-t border-slate-50">
+                    <span className="text-[10px] font-bold block uppercase text-slate-500">관찰 시점</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => setQuickView('front')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">앞면</button>
+                      <button onClick={() => setQuickView('top')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">윗면</button>
+                      <button onClick={() => setQuickView('side')} className="py-2 text-[10px] font-black rounded-xl border bg-slate-50">옆면</button>
+                      <button onClick={() => setQuickView('iso')} className="py-2 text-[10px] font-black rounded-xl border bg-blue-50 text-blue-600">입체</button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
             <div
@@ -1499,7 +1516,26 @@ const App: React.FC = () => {
         <main className="flex-1 relative flex flex-col min-w-0">
           <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-10 min-h-0 bg-slate-50">
             {activeTab === 'single' ? (
-              selectedNet ? (
+              (mode === 'cube3d' || mode === 'cuboid3d') && selectedNet ? (
+                <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
+                  <div ref={workspaceRef} className="flex-1 flex items-center justify-center relative overflow-hidden bg-slate-50 cursor-grab active:cursor-grabbing">
+                    <NetCanvas3D
+                      net={selectedNet}
+                      scale={computedScale}
+                      foldProgress={foldProgress}
+                      transparency={transparency}
+                      activeParallelPairs={activePairs}
+                      showGrid={showGrid}
+                      faceColors={faceColors}
+                      diceStyle={diceStyle}
+                      showEdgeMatches={showEdgeMatches}
+                      showArea={showArea}
+                      gridUnitValue={gridUnitValue}
+                      gridUnitType={gridUnitType}
+                    />
+                  </div>
+                </div>
+              ) : selectedNet ? (
                 <div className="flex-1 flex flex-col rounded-[3rem] overflow-hidden relative border-4 bg-white border-slate-200 shadow-xl">
                   <div ref={workspaceRef} onMouseDown={handleCanvasDown} onTouchStart={handleCanvasDown}
                     className={`flex-1 flex items-center justify-center relative overflow-hidden touch-none ${isCanvasInteracting ? (interactionMode === 'rotate' ? 'cursor-grabbing' : 'cursor-move') : (activeTool === 'move' ? 'cursor-move' : (selectedPaintColor ? 'cursor-copy' : 'cursor-grab'))}`}>

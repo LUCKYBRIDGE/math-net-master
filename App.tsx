@@ -897,6 +897,7 @@ const App: React.FC = () => {
             >
               직육면체
             </button>
+            {/*
             <div className="w-[1px] h-4 bg-slate-300 my-auto mx-1" />
             <button
               onClick={() => { setActiveTab('single'); setMode('cube3d'); }}
@@ -911,6 +912,7 @@ const App: React.FC = () => {
               직육면체(3D)
             </button>
             <div className="w-[1px] h-4 bg-slate-300 my-auto mx-1" />
+           */}
             <button
               onClick={() => { setActiveTab('single'); setMode('prism'); }}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'single' && mode === 'prism' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}

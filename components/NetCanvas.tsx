@@ -82,8 +82,7 @@ const PerspectiveWireframe: React.FC<{
     inset: 0,
     transform: isInward ? 'translateZ(0.1px)' : 'rotateY(180deg) translateZ(0.05px)',
     backfaceVisibility: 'hidden',
-    pointerEvents: 'none',
-    transformStyle: 'preserve-3d'
+    pointerEvents: 'none'
   };
 
   const diceValue = face.sideId !== undefined ? (DICE_MAP[face.sideId] || face.id + 1) : face.id + 1;

@@ -71,6 +71,7 @@ const PerspectiveWireframe: React.FC<{
   matchedEdgeColors?: Record<Direction, string | null>;
 }> = ({ face, isFoldLine, foldProgress, skinType, showEdgeMatches, scale, diceStyle, linePalette, baseEdgeColors, matchedEdgeColors }) => {
   const isInward = skinType === 'inward';
+  const isOutward = skinType === 'outward';
   const isFlat = foldProgress === 0;
   const directions: Direction[] = ['up', 'down', 'left', 'right'];
 
@@ -80,7 +81,7 @@ const PerspectiveWireframe: React.FC<{
   const layerStyle: React.CSSProperties = {
     position: 'absolute',
     inset: 0,
-    transform: isInward ? 'translateZ(0.1px)' : 'rotateY(180deg) translateZ(0.05px)',
+    transform: isOutward ? 'translateZ(0.1px)' : 'rotateY(180deg) translateZ(0.05px)',
     backfaceVisibility: 'hidden',
     pointerEvents: 'none'
   };
@@ -137,7 +138,7 @@ const PerspectiveWireframe: React.FC<{
     <div style={layerStyle}>
       {directions.map(dir => {
         let queryDir = dir;
-        if (!isInward) {
+        if (isInward) {
           if (dir === 'left') queryDir = 'right';
           else if (dir === 'right') queryDir = 'left';
         }
@@ -226,8 +227,8 @@ const PerspectiveWireframe: React.FC<{
         return <div key={dir} style={edgeStyle} />;
       })}
 
-      {diceStyle && diceStyle !== 'none' && isInward && scale > 10 && (
-        <div style={{ position: 'absolute', inset: 0, transform: `translateZ(1px)`, backfaceVisibility: 'visible', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {diceStyle && diceStyle !== 'none' && isOutward && scale > 10 && (
+        <div style={{ position: 'absolute', inset: 0, transform: `translateZ(1px)`, backfaceVisibility: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {diceStyle === 'number' ? (
             <span style={{
               fontSize: `${Math.min(face.width, face.height) * scale * 0.5}px`,
@@ -272,6 +273,7 @@ const FoldableFace: React.FC<{
   };
   showArea?: boolean;
   showBasePerimeter?: boolean;
+  baseFaceId?: number | null;
   baseEdgeConfig?: Record<number, string>; // matchId -> color
   baseFaceSideId?: number; // 밑면의 sideId (평행한 면을 찾기 위함)
   gridUnitValue?: number;

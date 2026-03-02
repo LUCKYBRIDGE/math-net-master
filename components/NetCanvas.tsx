@@ -211,14 +211,17 @@ const PerspectiveWireframe: React.FC<{
         }
 
         if (borderStyle === 'dashed') {
-          const dashSize = Math.max(4, 6 * sw);
-          const gapSize = Math.max(2, 4 * sw);
+          // 겹치는 면들의 각기 다른 점선이 합쳐져 실선이 되는 버그를 막기 위해 gapSize를 더 크게 설정
+          const dashSize = Math.max(3, 4 * sw);
+          const gapSize = Math.max(5, 7 * sw);
           if (dir === 'up' || dir === 'down') {
-            edgeStyle.backgroundImage = `linear-gradient(to right, ${color} ${dashSize}px, transparent ${gapSize}px)`;
+            edgeStyle.backgroundImage = `linear-gradient(to right, ${color} ${dashSize}px, transparent ${dashSize}px)`;
             edgeStyle.backgroundSize = `${dashSize + gapSize}px ${weight}px`;
+            edgeStyle.backgroundPosition = 'center';
           } else {
-            edgeStyle.backgroundImage = `linear-gradient(to bottom, ${color} ${dashSize}px, transparent ${gapSize}px)`;
+            edgeStyle.backgroundImage = `linear-gradient(to bottom, ${color} ${dashSize}px, transparent ${dashSize}px)`;
             edgeStyle.backgroundSize = `${weight}px ${dashSize + gapSize}px`;
+            edgeStyle.backgroundPosition = 'center';
           }
         } else {
           edgeStyle.backgroundColor = color;

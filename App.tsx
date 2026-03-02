@@ -1681,22 +1681,21 @@ const App: React.FC = () => {
                       ];
 
                       // 각기둥 가려짐(점선) 판단
-                      // Y 좌표가 작을수록(위로 갈수록) 3D 상에서 뒤쪽에 있다고 가정
-                      // 밑면 모서리의 중점 Y
                       const isBackBaseEdge = (i: number) => {
-                        if (n === 3 && prismSubtype === 'right') return i === 0; // AB (위쪽 변)
-                        if (n === 3 && prismSubtype === 'iso') return i === 2; // CA (상단 평행)
-                        if (n === 4 && prismSubtype === 'rect') return i === 2 || i === 3; // 윗변
-                        const midY = (frontBase[i].y + frontBase[(i + 1) % n].y) / 2;
-                        return midY < cy && n > 3; // 중심보다 위에 있으면 점선
+                        if (n === 3 && prismSubtype === 'right') return i === 0 || i === 2;
+                        if (n === 3 && prismSubtype === 'iso') return i === 0 || i === 2;
+                        if (n === 4 && prismSubtype === 'rect') return i === 0 || i === 3;
+                        const mx = (backTop[i].x + backTop[(i + 1) % n].x) / 2;
+                        const my = (backTop[i].y + backTop[(i + 1) % n].y) / 2;
+                        return mx < cx + R * 0.2 && my > cy - R * 0.2;
                       };
 
                       // 옆면 높이 모서리 점선 판단 (기둥)
                       const isBackSideEdge = (i: number) => {
-                        if (n === 3 && prismSubtype === 'right') return i === 0 || i === 2; // 가장 깊은 곳
-                        if (n === 3 && prismSubtype === 'iso') return i === 0 || i === 2;
-                        if (n === 4 && prismSubtype === 'rect') return i === 0 || i === 3; // 가장 높은 쪽의 두 꼭짓점에서 시작하는 기둥
-                        return frontBase[i].y < cy - R * 0.2 && frontBase[i].x < cx + R * 0.2;
+                        if (n === 3 && prismSubtype === 'right') return i === 0;
+                        if (n === 3 && prismSubtype === 'iso') return i === 0;
+                        if (n === 4 && prismSubtype === 'rect') return i === 0;
+                        return frontBase[i].x < cx && frontBase[i].y > cy;
                       };
 
                       // 물 채우기 연산
@@ -1740,23 +1739,23 @@ const App: React.FC = () => {
                             </foreignObject>
                           )}
 
-                          {/* 밑면 모서리 (빨간 굵기) */}
+                          {/* 윗면 모서리(앞면)는 모두 무조건 실선 */}
                           {frontBase.map((bp, i) => {
                             const ni = (i + 1) % n;
-                            return <line key={`be-${i}`} x1={bp.x} y1={bp.y} x2={frontBase[ni].x} y2={frontBase[ni].y}
-                              stroke="#ef4444" strokeWidth="2.5" strokeDasharray={isBackBaseEdge(i) ? '6 4' : 'none'} />;
+                            return <line key={`fe-${i}`} x1={bp.x} y1={bp.y} x2={frontBase[ni].x} y2={frontBase[ni].y}
+                              stroke="#ef4444" strokeWidth="2.5" />;
                           })}
-                          {/* 윗면 모서리 (파란 굴기) */}
+                          {/* 밑면 모서리(뒷면) 점선 처리 */}
                           {backTop.map((tp, i) => {
                             const ni = (i + 1) % n;
-                            return <line key={`te-${i}`} x1={tp.x} y1={tp.y} x2={backTop[ni].x} y2={backTop[ni].y}
-                              stroke="#3b82f6" strokeWidth="2.5" />;
+                            return <line key={`be-${i}`} x1={tp.x} y1={tp.y} x2={backTop[ni].x} y2={backTop[ni].y}
+                              stroke="#3b82f6" strokeWidth="2.5" strokeDasharray={isBackBaseEdge(i) ? '5 7' : 'none'} />;
                           })}
-                          {/* 옆면 높이 기둥 모서리 (초록 굵기) */}
+                          {/* 옆면 높이 기둥 모서리 점선 처리 */}
                           {frontBase.map((bp, i) => (
                             <line key={`se-${i}`} x1={bp.x} y1={bp.y} x2={backTop[i].x} y2={backTop[i].y}
-                              stroke="#059669" strokeWidth="2"
-                              strokeDasharray={isBackSideEdge(i) ? '6 4' : 'none'} />
+                              stroke="#059669" strokeWidth="2.5"
+                              strokeDasharray={isBackSideEdge(i) ? '5 7' : 'none'} />
                           ))}
 
                           {/* 꼭짓점 + 번호 */}
@@ -1835,18 +1834,18 @@ const App: React.FC = () => {
                       ];
 
                       // 각뿔 가려짐(점선) 판단
-                      // 꼭대기점(apex)으로 향하는 옆면 모서리
                       const isBackSideEdge = (i: number) => {
-                        if (n === 3 && pyramidSubtype === 'right') return i === 2 || i === 0;
-                        if (n === 4 && pyramidSubtype === 'rect') return i === 0 || i === 3;
-                        return basePoints[i].y < cy + R * 0.2 && n > 3; // 뒤쪽에 있는 점(y좌표가 작은 것)
+                        // 기본적으로 위에서 내려다보는 형태라 옆면 모서리는 대부분 실선
+                        if (n === 4 && pyramidSubtype === 'rect') return false;
+                        return false;
                       };
                       // 밑면 다각형 모서리
                       const isBackBaseEdge = (i: number) => {
-                        if (n === 3 && pyramidSubtype === 'right') return i === 2; // 직각삼각형 대각선 바로 위의 변
-                        if (n === 4 && pyramidSubtype === 'rect') return i === 2 || i === 3; // y값이 가장 작은 위쪽 변
-                        const midY = (basePoints[i].y + basePoints[(i + 1) % n].y) / 2;
-                        return midY < cy + R * 0.2 && n > 3; // 중심보다 위에 있는 밑선
+                        if (n === 3 && pyramidSubtype === 'right') return i === 1; // 빗변(뒷면 통과) 점선
+                        if (n === 4 && pyramidSubtype === 'rect') return i === 2 || i === 3; // 뒤쪽, 왼쪽 변 점선
+                        const mx = (basePoints[i].x + basePoints[(i + 1) % n].x) / 2;
+                        const my = (basePoints[i].y + basePoints[(i + 1) % n].y) / 2;
+                        return my < cy + R * 0.1 && mx < cx + R * 0.5 && n > 3;
                       };
 
                       // 물 채우기 연산
@@ -1895,13 +1894,13 @@ const App: React.FC = () => {
                             const ni = (i + 1) % n;
                             return <line key={`be-${i}`} x1={bp.x} y1={bp.y} x2={basePoints[ni].x} y2={basePoints[ni].y}
                               stroke="#ef4444" strokeWidth="2.5"
-                              strokeDasharray={isBackBaseEdge(i) ? '6 4' : 'none'} />;
+                              strokeDasharray={isBackBaseEdge(i) ? '5 7' : 'none'} />;
                           })}
                           {/* 옆면 모서리 (초록) */}
                           {basePoints.map((bp, i) => (
                             <line key={`se-${i}`} x1={bp.x} y1={bp.y} x2={apex.x} y2={apex.y}
-                              stroke="#059669" strokeWidth="2"
-                              strokeDasharray={isBackSideEdge(i) ? '6 4' : 'none'} />
+                              stroke="#059669" strokeWidth="2.5"
+                              strokeDasharray={isBackSideEdge(i) ? '5 7' : 'none'} />
                           ))}
 
                           {/* 꼭짓점 + 번호 */}
